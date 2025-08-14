@@ -125,7 +125,7 @@ else:
     st.write(f"Error getting data: \n\n {goals_data}")
 
 st.markdown("#### Select Time Range")
-selected_years = st.slider( "Select a range of years:", min_value=1963, max_value=2023, value=(1963, 2023), step=1, label_visibility="collapsed")
+selected_years = st.slider( "Select a range of years:", min_value=1963, max_value=2025, value=(1963, 2025), step=1, label_visibility="collapsed")
 
 # get data
 indicator_params = "indicator=" + "&indicator=".join(selected_indicator_codes)
