@@ -106,7 +106,7 @@ selected_country_codes = [country_to_iso_map.get(selected_country) for selected_
 
 # select years
 st.markdown("#### Select Time Range")
-selected_years = st.slider( "Select a range of years:", min_value=1960, max_value=2024, value=(1960, 2024), step=1, label_visibility="collapsed")
+selected_years = st.slider( "Select a range of years:", min_value=1960, max_value=2024, value=(1960, 2025), step=1, label_visibility="collapsed")
 
 # select amount of data
 st.markdown("#### Select Amount of Data")
