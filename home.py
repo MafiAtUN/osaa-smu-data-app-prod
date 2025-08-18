@@ -30,7 +30,8 @@ with col3:
     st.page_link("sdg_dashboard.py", label="UN SDG", icon=":material/show_chart:", use_container_width=True)
 
 with col4:
-    st.page_link("acled_dashboard.py", label="ACLED", icon=":material/newspaper:", use_container_width=True)
+    st.page_link("acled_dashboard.py", label="ACLED",
+                 icon=":material/newspaper:", use_container_width=True)
 
 
 st.markdown("<hr>", unsafe_allow_html=True)

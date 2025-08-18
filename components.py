@@ -30,6 +30,7 @@ import streamlit.components.v1 as components
 
 import os
 import builtins
+import ast
 
 # Allowed builtins for executing LLM generated code
 SAFE_BUILTINS = {
@@ -52,7 +53,7 @@ SAFE_BUILTINS = {
 
 UNSAFE_KEYWORDS = [
     "import os",
-    "import subprocess",
+    "import subprocess", 
     "import sys",
     "import importlib",
     "os.",
@@ -67,14 +68,40 @@ UNSAFE_KEYWORDS = [
     "pathlib",
 ]
 
+SAFE_IMPORTS = [
+    "import pandas",
+    "import numpy", 
+    "import plotly",
+    "import matplotlib",
+    "import seaborn",
+    "from pandas",
+    "from numpy",
+    "from plotly",
+    "from matplotlib", 
+    "from seaborn"
+]
 
 def validate_code(code: str) -> None:
     """Raise ValueError if code contains unsafe keywords."""
-
+    
+    # First check for unsafe keywords
     lowered = code.lower()
     for keyword in UNSAFE_KEYWORDS:
         if keyword in lowered:
             raise ValueError(f"Unsafe keyword detected: {keyword}")
+    
+    # Then check if any imports are present and if they're safe
+    import_lines = [line.strip().lower() for line in code.split('\n') if line.strip().startswith(('import ', 'from '))]
+    
+    for import_line in import_lines:
+        is_safe = False
+        for safe_import in SAFE_IMPORTS:
+            if safe_import in import_line:
+                is_safe = True
+                break
+        
+        if not is_safe and any(keyword in import_line for keyword in ['import ', 'from ']):
+            raise ValueError(f"Unsafe import detected: {import_line}")
 
 
 
@@ -206,10 +233,12 @@ def llm_data_analysis(df, chat_session_id, chat_history):
         Extract the output variable from the generated code.
         """
         try:
-            validate_code(code)
+            # Clean import statements before validation
+            cleaned_code = clean_import_statements(code)
+            validate_code(cleaned_code)
             local_variables = {'df': df, 'pd': pd, 'np': np}
             restricted_globals = {"__builtins__": SAFE_BUILTINS}
-            exec(code, restricted_globals, local_variables)
+            exec(cleaned_code, restricted_globals, local_variables)
             return local_variables['output']
         except Exception as e:
             return e
@@ -360,10 +389,12 @@ def llm_graph_maker(df):
         Extract the plotly fig object from the generated code.
         """
         try:
-            validate_code(code)
-            local_variables = {'df': df, 'pd': pd, 'np': np, 'go': go}
+            # Clean import statements before validation
+            cleaned_code = clean_import_statements(code)
+            validate_code(cleaned_code)
+            local_variables = {'df': df, 'pd': pd, 'np': np, 'go': go, 'px': px}
             restricted_globals = {"__builtins__": SAFE_BUILTINS}
-            exec(code, restricted_globals, local_variables)
+            exec(cleaned_code, restricted_globals, local_variables)
             return local_variables['fig']
         except Exception as e:
             return e
@@ -381,7 +412,13 @@ def llm_graph_maker(df):
         [
             (
                 "system",
-                "You are a data visualization expert. Follow the user's instructions to create a graph. You will get a summary of the data as well as the first several rows. The data is available as a Pandas DataFrame in the variable 'df'. Use only the following Python libraries: Plotly, Pandas, and NumPy. Store the graph in a variable called 'fig'.",
+                "You are a data visualization expert. Follow the user's instructions to create a graph. "
+                "You will get a summary of the data as well as the first several rows. "
+                "The data is available as a Pandas DataFrame in the variable 'df'. "
+                "Use only the following Python libraries: Plotly, Pandas, and NumPy. "
+                "Store the graph in a variable called 'fig'. "
+                "**IMPORTANT: Do NOT include any import statements in your code.** "
+                "The required modules (pandas, numpy, plotly) are already available in the execution environment."
             ),
             (
                 "system",
@@ -474,4 +511,22 @@ def show_pygwalker(df):
         return html
 
     components.html(get_pyg_html(df), width=1300, height=1000, scrolling=True)
+
+
+def clean_import_statements(code: str) -> str:
+    """
+    Remove import statements from LLM-generated code since modules are already provided.
+    """
+    lines = code.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        stripped = line.strip()
+        # Skip import statements
+        if (stripped.startswith('import ') or 
+            stripped.startswith('from ') and ' import ' in stripped):
+            continue
+        cleaned_lines.append(line)
+    
+    return '\n'.join(cleaned_lines)
 

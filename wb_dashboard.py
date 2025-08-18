@@ -221,7 +221,7 @@ else:
 
 # select years
 st.markdown("#### Select Time Range")
-selected_years = st.slider( "Select a range of years:", min_value=1960, max_value=2024, value=(1960, 2024), step=1, label_visibility="collapsed")
+selected_years = st.slider( "Select a range of years:", min_value=1960, max_value=2025, value=(1960, 2025), step=1, label_visibility="collapsed")
 
 # get world bank data
 try:

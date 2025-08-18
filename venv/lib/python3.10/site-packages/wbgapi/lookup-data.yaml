@@ -1,0 +1,128 @@
+# provides alternate matching strings for corresponding ISO3 codes, in addition
+# to strings provided by the API itself. Each string is treated as a case-insensitive regex
+# pattern restricted to word boundaries. In addition, sugar is applied so that
+# 'and' and '&' are equivalent as are 'st' and 'saint'
+#
+# strings beginning with ':' are treated as literal strings not patterns, and must match the 
+# target text exactly (still case-insensitive)
+
+# strings beginning with '~' are EXCLUDED patterns that cause any subsequent matches
+# for that ID to be ignored in favor of subsequent IDs. See "Hong Kong" for an example
+#
+# note that in the target string apostrophes are removed and remaining non-alpha characters
+# replaced with spaces
+
+BHS:
+- Bahamas
+BIH:
+- Bosnia Herzegovina
+- Bosnia Hercegovenia
+BRN:
+- Brunei
+CHN:
+  order: 20 # defer to 'Hong Kong'
+CIV:
+- Ivory Coast
+- C..?te d.?Ivoire
+COD:
+- Congo Democratic Republic
+- Dem(ocratic)? Rep(ublic)? of (the )?Congo
+COG:
+- Congo Republic
+- :Congo
+CPV:
+- Cape Verde
+CUW:
+- Cura..?ao
+CZE:
+- Czech
+- Czechia
+EGY:
+- Egypt
+FRO:
+- Faroe
+FSM:
+- Micronesia
+GIN:
+  order: 99 # defer to 'Guinea Bissau' and 'Equatorial Guinea'
+GBR:
+- Great Britain
+- England
+- :UK
+GMB:
+- Gambia
+HKG:
+- ~China.*Hong Kong # this likely refers to China (e.g. "China, including Hong Kong"), so all HKG patterns should fail
+- Hong Kong
+IRL:
+  order: 20 # defer to 'Great Britain and Northern Ireland'
+IRN:
+- Iran
+KGZ:
+- Kyrgyzstan
+KOR:
+- Korea Republic
+- :Republic of Korea
+- :Korea
+- South Korea
+- Korea South
+- S Korea
+LAO:
+- Laos
+- Lao
+LCA:
+- Saint Lucia
+MAC:
+- Macao
+- Macau
+MMR:
+- Burma
+MKD:
+- Macedonia
+PRK:
+- Korea Democratic(\s+Peoples)? Republic(\s+of)?
+- Democratic Peoples Republic of Korea
+- North Korea
+- Korea North
+- N Korea
+- DPR (of )?Korea
+PSE:
+- Palestine
+RUS:
+- Russia
+SDN:
+  order: 20 # defer to 'South Sudan'
+SSD:
+- S Sudan
+- Sudan South
+SVK:
+- Slovakia
+SWZ:
+- Swaziland
+SYR:
+- Syria
+TLS:
+- East Timor
+TUR:
+- Turkey
+- Türkiye
+TWN:
+- Taiwan
+USA:
+- :US
+VEN:
+- Venezuela
+VGB:
+- UK Virgin Islands
+- Virgin Islands UK
+- :BVI
+VIR:
+- US Virgin Islands
+- :USVI
+VNM:
+- Viet nam
+YEM:
+- Yemen
+ZAF:
+- South Africa
+- S Africa

@@ -11,7 +11,7 @@ st.page_link("home.py", label="Home", icon=":material/home:", use_container_widt
 
 # title and introduction
 st.title("OSAA SMU's Data Dashboard")
-st.markdown("To get started, upload data you have stored in a CSV or Excel file. Once you have uploaded your data, you will have the ability to further filter it if desired. Once you have optionally filtered the data, you will be able to use the data analysis tools.")
+st.markdown("To get started, upload data you have stored in a CSV, Excel, or Parquet file. Once you have uploaded your data, you will have the ability to further filter it if desired. Once you have optionally filtered the data, you will be able to use the data analysis tools.")
 st.markdown("<hr>", unsafe_allow_html=True)
 st.write("")
 

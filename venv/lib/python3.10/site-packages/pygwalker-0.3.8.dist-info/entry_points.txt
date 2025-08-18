@@ -1,0 +1,2 @@
+[console_scripts]
+pygwalker = pygwalker_utils.__main__:main

@@ -1,6 +1,10 @@
 import streamlit as st
 import hmac
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # check password
 def check_password():

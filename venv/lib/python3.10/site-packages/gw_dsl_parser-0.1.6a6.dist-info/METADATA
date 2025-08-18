@@ -1,0 +1,45 @@
+Metadata-Version: 2.1
+Name: gw_dsl_parser
+Version: 0.1.6a6
+Summary: gw_dsl_parser: Convert your graphic-walker workflow to sql
+Project-URL: homepage, https://github.com/Kanaries/gw-dsl-parser-py
+Project-URL: repository, https://github.com/Kanaries/gw-dsl-parser-py
+Author-email: kanaries <support@kanaries.net>
+License-File: LICENSE
+Keywords: graphic-walker,pygwalker
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.6
+Requires-Dist: wasmtime==12.0.0
+Provides-Extra: dev
+Requires-Dist: build; extra == 'dev'
+Requires-Dist: pytest; extra == 'dev'
+Requires-Dist: twine; extra == 'dev'
+Description-Content-Type: text/markdown
+
+# gw-dsl-parser-py
+
+
+## Install
+
+```
+pip install gw-dsl-parser
+```
+
+## Develop
+
+```
+pip install ./
+
+python ./scripts/download_wasm.py
+```
+
+## Example
+
+```python
+from gw_dsl_parser import get_sql_from_payload
+
+payload = {"workflow": [{"type": "view", "query": [{"op": "aggregate", "groupBy": [], "measures": [{"field": "*", "agg": "count", "asFieldKey": "count"}]}]}]}
+table_name = "test_table"
+sql = get_sql_from_payload(table_name, payload)
+```
