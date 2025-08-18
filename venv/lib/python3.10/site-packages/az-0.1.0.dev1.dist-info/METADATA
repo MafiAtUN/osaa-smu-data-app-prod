@@ -1,0 +1,27 @@
+Metadata-Version: 2.1
+Name: az
+Version: 0.1.0.dev1
+Summary: AZ - simple command line tools
+Home-page: https://gitlab.com/uda/az/
+Author: Yehuda Deutsch
+Author-email: yeh@uda.co.il
+License: MIT
+Project-URL: Source, https://gitlab.com/uda/az/
+Keywords: cli console
+Platform: UNKNOWN
+Classifier: Development Status :: 1 - Planning
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3 :: Only
+Description-Content-Type: text/markdown
+
+# AZ - simple command line tools
+
+

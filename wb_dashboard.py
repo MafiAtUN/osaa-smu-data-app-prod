@@ -4,6 +4,8 @@ import wbgapi as wb
 import plotly.express as px
 from components import df_summary, llm_data_analysis, show_mitosheet, show_pygwalker, llm_graph_maker
 
+
+
 # cached functions for retreiving data
 @st.cache_data
 def get_databases():
@@ -51,20 +53,26 @@ def get_iso_reference_df():
 @st.fragment
 def show_time_series_plots():
 
+    # Ensure we're using a regular pandas DataFrame for plotting
+    plot_df = df.copy() if df is not None else None
+    
     # plot country indicators
     try:
-        fig = px.line(
-            df, 
-            x='Year', 
-            y='Value', 
-            color='Country or Area', 
-            symbol='Indicator',
-            markers=True,
-            labels={'Country or Area': 'Country', 'Indicator': 'Indicator', 'Indicator Description': 'Indicator Description', 'Value': 'Value', 'Year': 'Year'},
-            title="Time Series of Indicators by Country and Indicator"
-        )
+        if plot_df is not None:
+            fig = px.line(
+                plot_df, 
+                x='Year', 
+                y='Value', 
+                color='Country or Area', 
+                symbol='Indicator',
+                markers=True,
+                labels={'Country or Area': 'Country', 'Indicator': 'Indicator', 'Indicator Description': 'Indicator Description', 'Value': 'Value', 'Year': 'Year'},
+                title="Time Series of Indicators by Country and Indicator"
+            )
 
-        st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.error("No data available for plotting")
 
     except Exception as e:
         st.error(f"Error generating Time Series Graph:\n\n{e}")
@@ -113,28 +121,34 @@ def show_time_series_plots():
 
     # map graph
     st.markdown("###### Choose an Indicator to show on the map")
-    indicator_descriptions = df['Indicator Description'].unique()
-    selected_indicator = st.selectbox("select indicator to show on map:", indicator_descriptions, label_visibility="collapsed")
-    indicator_description_code_map = {d['value']: d['id'] for d in indicators}
-    selected_code = indicator_description_code_map[selected_indicator]
-    indicator_df = df[(df['Indicator'] == selected_code)]
+    if plot_df is not None:
+        indicator_descriptions = plot_df['Indicator Description'].unique()
+        selected_indicator = st.selectbox("select indicator to show on map:", indicator_descriptions, label_visibility="collapsed")
+        indicator_description_code_map = {d['value']: d['id'] for d in indicators}
+        selected_code = indicator_description_code_map[selected_indicator]
+        indicator_df = plot_df[(plot_df['Indicator'] == selected_code)]
 
-    most_recent_year_with_value = indicator_df.dropna(subset=['Value'])
-    most_recent_year = most_recent_year_with_value['Year'].max()
-    map_df = most_recent_year_with_value[most_recent_year_with_value['Year'] == most_recent_year]
+        most_recent_year_with_value = indicator_df.dropna(subset=['Value'])
+        most_recent_year = most_recent_year_with_value['Year'].max()
+        map_df = most_recent_year_with_value[most_recent_year_with_value['Year'] == most_recent_year]
+    else:
+        map_df = None
 
     try:
-        fig = px.choropleth(
-            map_df,
-            locations='iso3',
-            color='Value',
-            hover_name='Country or Area',
-            color_continuous_scale='Viridis',
-            projection='natural earth',
-            title="Map of Indicator Value"
-        )
+        if map_df is not None and not map_df.empty:
+            fig = px.choropleth(
+                map_df,
+                locations='iso3',
+                color='Value',
+                hover_name='Country or Area',
+                color_continuous_scale='Viridis',
+                projection='natural earth',
+                title="Map of Indicator Value"
+            )
 
-        st.plotly_chart(fig)
+            st.plotly_chart(fig)
+        else:
+            st.warning("No data available for map visualization")
 
     except Exception as e:
         st.error(f"Error generating Map Graph:\n\n{e}")
@@ -291,18 +305,14 @@ if df is not None and not df.empty:
 
     # natural language graph maker
     llm_graph_maker(df)
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("") 
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.write("")
 
-    # # Mitosheet
-    # st.subheader("Mitosheet Spreadsheet")
-    # show_mitosheet(df)
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("") 
 
-    # # PyGWalker
-    # st.subheader("PyGWalker Graphing Tool")
-    # show_pygwalker(df)
+
+    # PyGWalker
+    st.subheader("PyGWalker Graphing Tool")
+    show_pygwalker(df)
 
 elif df is not None and df.empty:
     st.markdown("<hr>", unsafe_allow_html=True)

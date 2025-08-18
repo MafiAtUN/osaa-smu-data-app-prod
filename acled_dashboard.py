@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import os
-from components import llm_data_analysis, llm_graph_maker
+from components import llm_data_analysis, llm_graph_maker, show_pygwalker
 
 @st.cache_data
 def get_access_token(username, password):
@@ -265,6 +265,12 @@ if df is not None and not df.empty:
 
     # natural language graph maker
     llm_graph_maker(df)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.write("")
+
+    # PyGWalker
+    st.subheader("PyGWalker Graphing Tool")
+    show_pygwalker(df)
 
 elif df is not None and df.empty:
     st.markdown("<hr>", unsafe_allow_html=True)

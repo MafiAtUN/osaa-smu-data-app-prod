@@ -116,18 +116,12 @@ if filtered_df is not None and not filtered_df.empty:
 
     # natural language graph maker
     llm_graph_maker(df)
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.write("")
 
-    # # Mitosheet
-    # st.subheader("Mitosheet Spreadsheet")
-    # show_mitosheet(filtered_df)
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("") 
-
-    # # PyGWalker
-    # st.subheader("PyGWalker Graphing Tool")
-    # show_pygwalker(filtered_df)
+    # PyGWalker
+    st.subheader("PyGWalker Graphing Tool")
+    show_pygwalker(filtered_df)
     
 elif filtered_df is not None and filtered_df.empty:
     st.markdown("<hr>", unsafe_allow_html=True)

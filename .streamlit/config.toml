@@ -1,5 +1,14 @@
+[server]
+port = 8000
+address = "0.0.0.0"
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats = false
+
 [theme]
-base="light"
-primaryColor="#009edb"
-secondaryBackgroundColor="#ebf5fd"
-textColor="#000000"
+primaryColor = "#FF6B6B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"

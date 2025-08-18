@@ -11,12 +11,24 @@ def get_data(url):
     Function to get data from the passed URL through an HTTPS request and return it as a JSON object. Data is cached so that function does not rerun when URL doesn't change.
     """
     try:
-        data = requests.get(url).json()
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        
+        # Check if response is empty
+        if not response.text.strip():
+            return Exception("Empty response from API")
+        
+        data = response.json()
+        return data
+    except requests.exceptions.RequestException as e:
+        st.cache_data.clear()
+        return Exception(f"Request failed: {str(e)}")
+    except ValueError as e:
+        st.cache_data.clear()
+        return Exception(f"Invalid JSON response: {str(e)}. Response text: {response.text[:200]}...")
     except Exception as e:
         st.cache_data.clear()
-        data = e
-
-    return data
+        return Exception(f"Unexpected error: {str(e)}")
 
 @st.cache_data
 def get_iso_reference_df():
@@ -55,14 +67,9 @@ if not isinstance(goals_data, Exception):
 
     st.write(selected_goal_data['description'])
 
-    st.markdown(f"##### Available Indicators for *{selected_goal_title}*")
+    # Load indicator data for selection (but don't display all indicators)
     indicator_url = "v1/sdg/Indicator/List"
     indicator_data = get_data(f"{BASE_URL}/{indicator_url}")
-    if not isinstance(indicator_data, Exception):
-        for i, indicator in enumerate(indicator_data):           
-            if indicator['goal'] == selected_goal_code:
-                series_codes = [series_entry['code'] for series_entry in indicator['series']]
-                st.markdown(f"**{indicator['code']}:** {indicator['description']}.")
 else:
     indicator_data = None
     st.write(f"Error getting data: \n\n {goals_data}")
@@ -71,10 +78,20 @@ st.markdown("<hr>", unsafe_allow_html=True)
 st.write("")
 
 st.markdown("#### Select Indicators")
-indicators = [f"{indicator['code']}: {indicator['description']}" for indicator in indicator_data]
-if indicator_data is not None:
-    selected_indicator_names = st.multiselect("select indicators", indicators, label_visibility="collapsed", placeholder='select indicators...')
-    selected_indicator_codes = [entry.split(': ')[0] for entry in selected_indicator_names]
+# Filter indicators to only show those belonging to the selected goal
+if indicator_data is not None and 'selected_goal_code' in locals():
+    filtered_indicators = [indicator for indicator in indicator_data if indicator['goal'] == selected_goal_code]
+    indicators = [f"{indicator['code']}: {indicator['description']}" for indicator in filtered_indicators]
+    
+    if indicators:
+        selected_indicator_names = st.multiselect("select indicators", indicators, label_visibility="collapsed", placeholder='select indicators...')
+        selected_indicator_codes = [entry.split(': ')[0] for entry in selected_indicator_names]
+    else:
+        st.warning(f"No indicators found for the selected goal: {selected_goal_title}")
+        selected_indicator_codes = []
+else:
+    st.warning("Please select a goal first to see available indicators.")
+    selected_indicator_codes = []
 
 st.markdown("#### Select Countries")
 country_code_url = "v1/sdg/GeoArea/List"
@@ -134,6 +151,8 @@ year_params = "&timePeriod=" + "&timePeriod=".join([str(i) for i in range(select
 page_size = 1000
 data_url = f"{BASE_URL}/v1/sdg/Indicator/Data?{indicator_params}{country_params}{year_params}&pageSize={page_size}"
 
+
+
 st.write("NOTE: the maximum number of pages defaults to 100. Each page contains 1000 rows of data. If you need more than 10,000 rows, increase the maximum page size accordingly. Very large queries may result in app timeouts.")
 
 col1, col2 = st.columns(2)
@@ -161,38 +180,145 @@ with col2:
                     st.write("no data returned for the selected countries, indicators, and years.")
                 else:
                     for entry in data["data"]:
-                        extracted_data.append({
-                            "Indicator": entry["indicator"][0],
-                            "Value": entry["value"],
-                            "Year": entry["timePeriodStart"],
-                            "m49": entry["geoAreaCode"],
-                            "Country": entry["geoAreaName"],
-                            "Series": entry["series"],
-                            "Series Description": entry["seriesDescription"]
-                        })
+                        # Extract all available columns from the API response
+                        row_data = {}
+                        
+                        # Handle indicator field (it might be an array)
+                        if isinstance(entry.get("indicator"), list) and len(entry["indicator"]) > 0:
+                            row_data["Indicator"] = entry["indicator"][0]
+                        else:
+                            row_data["Indicator"] = entry.get("indicator", "")
+                        
+                        # Add all other fields from the API response
+                        for key, value in entry.items():
+                            if key != "indicator":  # Already handled above
+                                if key == "dimensions":
+                                    # Handle dimensions as JSON object or string
+                                    if isinstance(value, str):
+                                        try:
+                                            import json
+                                            dim_dict = json.loads(value)
+                                            for dim_key, dim_value in dim_dict.items():
+                                                row_data[f"dimension_{dim_key}"] = dim_value
+                                        except:
+                                            row_data[key] = value
+                                    elif isinstance(value, dict):
+                                        for dim_key, dim_value in value.items():
+                                            row_data[f"dimension_{dim_key}"] = dim_value
+                                    else:
+                                        row_data[key] = value
+                                elif key == "attributes":
+                                    # Handle attributes as JSON object or string
+                                    if isinstance(value, str):
+                                        try:
+                                            import json
+                                            attr_dict = json.loads(value)
+                                            for attr_key, attr_value in attr_dict.items():
+                                                row_data[f"attribute_{attr_key}"] = attr_value
+                                        except:
+                                            row_data[key] = value
+                                    elif isinstance(value, dict):
+                                        for attr_key, attr_value in value.items():
+                                            row_data[f"attribute_{attr_key}"] = attr_value
+                                    else:
+                                        row_data[key] = value
+                                else:
+                                    row_data[key] = value
+                        
+                        extracted_data.append(row_data)
                         # extracted_data.append(entry)
+
+                # Check if we've reached the end of data (less than page_size records)
+                if len(data.get('data', [])) < page_size:
+                    break
 
             else:
                 st.error(f"An error occurred while getting the data: \n\n {data}.")
-
-            if len(data.get('data', [])) < page_size:
-                break
+                break  # Exit the loop if there's an error
 
         df = pd.DataFrame(extracted_data)
 
         if not df.empty:
 
-            # add country reference codes
-            df = df.merge(iso3_reference_df[['Country or Area', 'Region Name', 'Sub-region Name', 'Intermediate Region Name','iso2', 'iso3', 'm49']], left_on='m49', right_on='m49', how='left')
-            # df = df.merge(iso3_reference_df[['Country or Area', 'Region Name', 'Sub-region Name', 'iso2', 'iso3', 'm49']], left_on='geoAreaCode', right_on='m49', how='left')
 
-            # clean dataframe
-            df['Value'] = pd.to_numeric(df['Value'], errors='coerce')
-            df['Year'] = df['Year'].astype(int)
 
-            # reorder columns
-            column_order = ['Indicator', 'Series', 'Year', 'Country or Area', 'Value', 'Region Name', 'Sub-region Name', 'Intermediate Region Name', 'iso2', 'iso3', 'm49', 'Series Description']
-            df = df[column_order]
+            # Determine the correct country code column name
+            country_code_column = None
+            possible_country_columns = ['m49', 'geoAreaCode', 'areaCode', 'countryCode']
+            
+            for col in possible_country_columns:
+                if col in df.columns:
+                    country_code_column = col
+                    break
+            
+            if country_code_column:
+                # add country reference codes
+                df = df.merge(iso3_reference_df[['Country or Area', 'Region Name', 'Sub-region Name', 'Intermediate Region Name','iso2', 'iso3', 'm49']], left_on=country_code_column, right_on='m49', how='left')
+            else:
+                st.warning("Could not find country code column. Available columns that might be country codes: " + str([col for col in df.columns if 'code' in col.lower() or 'area' in col.lower() or 'country' in col.lower()]))
+
+            # clean dataframe - handle numeric fields more carefully
+            if 'Value' in df.columns:
+                df['Value'] = pd.to_numeric(df['Value'], errors='coerce')
+            if 'Year' in df.columns:
+                df['Year'] = pd.to_numeric(df['Year'], errors='coerce').astype('Int64')  # Use Int64 to handle NaN values
+            
+            # Rename dimension columns to be more user-friendly
+            column_mapping = {}
+            for col in df.columns:
+                if col.startswith('dimension_'):
+                    dim_name = col.replace('dimension_', '')
+                    column_mapping[col] = f"Breakdown by {dim_name}"
+            
+            df = df.rename(columns=column_mapping)
+            
+            # Reorder columns according to specified order
+            priority_columns = []
+            
+            # Add code columns first
+            if 'm49' in df.columns:
+                priority_columns.append('m49')
+            if 'iso3' in df.columns:
+                priority_columns.append('iso3')
+            
+            # Add region columns
+            if 'Region Name' in df.columns:
+                priority_columns.append('Region Name')
+            if 'Sub-region Name' in df.columns:
+                priority_columns.append('Sub-region Name')
+            if 'Intermediate Region Name' in df.columns:
+                priority_columns.append('Intermediate Region Name')
+            
+            # Add country column
+            if 'Country or Area' in df.columns:
+                priority_columns.append('Country or Area')
+            
+            # Add dimension columns (breakdown columns)
+            breakdown_columns = [col for col in df.columns if col.startswith('Breakdown by')]
+            priority_columns.extend(sorted(breakdown_columns))
+            
+            # Add series description
+            if 'seriesDescription' in df.columns:
+                priority_columns.append('seriesDescription')
+            
+            # Add time period and value
+            if 'timePeriodStart' in df.columns:
+                priority_columns.append('timePeriodStart')
+            if 'value' in df.columns:
+                priority_columns.append('value')
+            
+            # Add only specific remaining columns (exclude unwanted ones)
+            unwanted_columns = [
+                'attribute_Nature', 'source', 'target', 'timeCoverage', 'time_detail', 
+                'upperBound', 'lowerBound', 'footnotes', 'seriesCount', 'geoInfoUrl', 
+                'basePeriod', 'valueType'
+            ]
+            
+            remaining_columns = [col for col in df.columns if col not in priority_columns and col not in unwanted_columns]
+            priority_columns.extend(sorted(remaining_columns))
+            
+            # Reorder the dataframe
+            df = df[priority_columns]
 
     else:
         df = None
@@ -255,17 +381,54 @@ if df is not None and not df.empty:
     st.markdown("<hr>", unsafe_allow_html=True)
     st.write("")
 
-    # show time series graphs
-    # st.subheader("Explore Data")
-    # show_time_series_plots()
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("")
-
-    # show summary statistics
-    # st.markdown("### Variable Summary")
-    # df_summary(df)
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("") 
+    # Data Availability Visualization
+    st.markdown("### Data Availability by Country and Year")
+    
+    try:
+        # Create a pivot table showing data availability
+        if 'Country or Area' in df.columns and 'timePeriodStart' in df.columns:
+            # Create availability matrix (1 if data exists, 0 if not)
+            availability_df = df.groupby(['Country or Area', 'timePeriodStart']).size().reset_index(name='count')
+            availability_df['has_data'] = 1
+            
+            # Pivot to get countries as rows and years as columns
+            pivot_df = availability_df.pivot(index='Country or Area', columns='timePeriodStart', values='has_data').fillna(0)
+            
+            # Create heatmap
+            fig = px.imshow(
+                pivot_df,
+                title="Data Availability Heatmap",
+                labels=dict(x="Year", y="Country", color="Data Available"),
+                color_continuous_scale="Blues",
+                aspect="auto"
+            )
+            
+            fig.update_layout(
+                xaxis_title="Year",
+                yaxis_title="Country",
+                height=600
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Show summary statistics
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Countries", len(pivot_df))
+            with col2:
+                st.metric("Year Range", f"{pivot_df.columns.min()} - {pivot_df.columns.max()}")
+            with col3:
+                total_data_points = pivot_df.sum().sum()
+                st.metric("Total Data Points", total_data_points)
+                
+        else:
+            st.warning("Required columns (Country or Area, timePeriodStart) not found for availability visualization.")
+            
+    except Exception as e:
+        st.error(f"Error creating data availability visualization: {e}")
+    
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.write("")
 
     # natural language dataset exploration
     llm_data_analysis(df, chat_session_id, {})
@@ -274,18 +437,12 @@ if df is not None and not df.empty:
 
     # natural language graph maker
     llm_graph_maker(df)
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.write("")
 
-    # # Mitosheet
-    # st.subheader("Mitosheet Spreadsheet")
-    # show_mitosheet(df)
-    # st.markdown("<hr>", unsafe_allow_html=True)
-    # st.write("") 
-
-    # # PyGWalker
-    # st.subheader("PyGWalker Graphing Tool")
-    # show_pygwalker(df)
+    # PyGWalker
+    st.subheader("PyGWalker Graphing Tool")
+    show_pygwalker(df)
 
 elif df is not None and df.empty:
     st.markdown("<hr>", unsafe_allow_html=True)
