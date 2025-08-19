@@ -4,3 +4,10 @@ __pycache__/
 .streamlit/secrets.toml
 content/data/
 content/rag_documents/
+
+# Environment variables and secrets
+.env
+*.env
+.env.local
+.env.production
+.env.staging
