@@ -54,7 +54,7 @@ az webapp config set --name osaa-smu-data-app --resource-group osaa-smu-data-app
 # Set environment variables in Azure
 az webapp config appsettings set --name osaa-smu-data-app --resource-group osaa-smu-data-app-rg --settings \
   azure="your_azure_openai_key" \
-  azure_endpoint="https://openai-osaa-v2.openai.azure.com/" \
+  azure_endpoint="https://openai*****.openai.azure.com/" \
   acled_email="your_acled_email" \
   acled_key="your_acled_api_key" \
   app_password="your_app_password" \
