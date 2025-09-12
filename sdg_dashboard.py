@@ -39,6 +39,7 @@ def get_iso_reference_df():
 
 chat_session_id = 'sdg-dashboard-chat-id'
 
+# Note: Session state is preserved to maintain user selections and data
 
 # base url for SDG requests
 BASE_URL = "https://unstats.un.org/sdgs/UNSDGAPIV5"
@@ -47,7 +48,7 @@ BASE_URL = "https://unstats.un.org/sdgs/UNSDGAPIV5"
 iso3_reference_df = get_iso_reference_df()
 
 # home button
-st.page_link("home.py", label="Home", icon=":material/home:", use_container_width=True)
+st.page_link("home.py", label="Home", icon="🏠", use_container_width=True)
 
 # title and introduction
 st.title("OSAA SMU's SDG Data Dashboard")
@@ -239,6 +240,8 @@ with col2:
         df = pd.DataFrame(extracted_data)
 
         if not df.empty:
+            # Store the dataframe in session state
+            st.session_state.sdg_data = df
 
 
 
@@ -321,7 +324,8 @@ with col2:
             df = df[priority_columns]
 
     else:
-        df = None
+        # Try to get dataframe from session state
+        df = st.session_state.get('sdg_data', None)
 
 
 @st.fragment
@@ -373,11 +377,260 @@ def show_time_series_plots():
 
 
 # if there is a dataset selected, show the dataset and data tools
-if df is not None and not df.empty:
+# Always use session state data for consistency
+df_to_show = st.session_state.get('sdg_data', df)
+if df_to_show is not None and not df_to_show.empty:
 
     # display the dataset
     st.markdown("### Dataset")
-    st.write(df)
+    st.write(df_to_show)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.write("")
+
+    # Latest Year Data Available Section
+    st.markdown("### Most Recent Data Available by Country")
+    st.markdown("This section shows the most recent data available for each country within your selected year range.")
+    
+    # Get the range of years in the data for the selection
+    if 'timePeriodStart' in df_to_show.columns:
+        # Get years that actually have data (not null values)
+        years_with_data = df_to_show[df_to_show['value'].notna()]['timePeriodStart'].unique()
+        if len(years_with_data) > 0:
+            # Sort years for range selection
+            min_year = int(min(years_with_data))
+            max_year = int(max(years_with_data))
+            
+            # Create year range slider
+            year_range = st.slider(
+                "Select year range to find most recent data within:",
+                min_value=min_year,
+                max_value=max_year,
+                value=(max_year - 10, max_year),  # Default to last 10 years
+                step=1,
+                label_visibility="collapsed"
+            )
+        else:
+            st.warning("No data available with valid values for any year.")
+            year_range = None
+        
+        # Use session state to control latest data display
+        if year_range is not None and st.button("Show Most Recent Data by Country", type="primary", use_container_width=True):
+            # Get data directly from session state to ensure it's available
+            session_data = st.session_state.get('sdg_data', None)
+            if session_data is not None and not session_data.empty:
+                # Filter data to the selected year range
+                filtered_data = session_data[
+                    (session_data['timePeriodStart'] >= year_range[0]) & 
+                    (session_data['timePeriodStart'] <= year_range[1]) & 
+                    (session_data['value'].notna())
+                ].copy()
+                
+                if not filtered_data.empty:
+                    # For each country and series, get the most recent data
+                    latest_data_list = []
+                    
+                    # Determine which columns to use for grouping
+                    country_column = None
+                    series_column = None
+                    
+                    # Check for country column
+                    if 'Country or Area' in filtered_data.columns:
+                        country_column = 'Country or Area'
+                    elif 'geoAreaName' in filtered_data.columns:
+                        country_column = 'geoAreaName'
+                    elif 'areaName' in filtered_data.columns:
+                        country_column = 'areaName'
+                    else:
+                        # Find country code column and create a name column
+                        possible_country_code_columns = ['m49', 'geoAreaCode', 'areaCode', 'countryCode']
+                        country_code_col = None
+                        for col in possible_country_code_columns:
+                            if col in filtered_data.columns:
+                                country_code_col = col
+                                break
+                        
+                        if country_code_col:
+                            country_column = country_code_col
+                        else:
+                            st.error("Could not find a suitable country identifier column.")
+                            st.stop()
+                    
+                    # Check for series column
+                    if 'seriesDescription' in filtered_data.columns:
+                        series_column = 'seriesDescription'
+                    elif 'series' in filtered_data.columns:
+                        series_column = 'series'
+                    elif 'Indicator' in filtered_data.columns:
+                        series_column = 'Indicator'
+                    else:
+                        st.error("Could not find a suitable series/indicator column.")
+                        st.stop()
+                    
+                    # Group by country and series to find most recent data for each combination
+                    for (country, series), group in filtered_data.groupby([country_column, series_column]):
+                        # Get the most recent year for this country-series combination
+                        most_recent_year = group['timePeriodStart'].max()
+                        most_recent_data = group[group['timePeriodStart'] == most_recent_year].iloc[0]
+                        latest_data_list.append(most_recent_data)
+                    
+                    # Convert to DataFrame
+                    latest_data = pd.DataFrame(latest_data_list)
+                    
+                    # Store results in session state
+                    st.session_state.latest_data_results = latest_data
+                    st.session_state.show_latest_data = True
+                    st.session_state.selected_year_range = year_range
+                else:
+                    st.warning(f"No data available within the selected year range {year_range[0]}-{year_range[1]}")
+        
+        # Show latest data if flag is set
+        if st.session_state.get('show_latest_data', False) and 'latest_data_results' in st.session_state:
+            latest_data = st.session_state.latest_data_results
+            selected_range = st.session_state.get('selected_year_range', (min_year, max_year))
+            
+            if latest_data is not None and not latest_data.empty:
+                # Display summary information
+                st.success(f"Found most recent data for {len(latest_data)} country-indicator combinations within {selected_range[0]}-{selected_range[1]}")
+                
+                # Display country table with latest year data
+                st.markdown("#### Most Recent Data by Country and Indicator")
+                
+                # Determine which columns to display based on what's available
+                display_columns = []
+                
+                # Add country column (prefer full name over code)
+                if 'Country or Area' in latest_data.columns:
+                    display_columns.append('Country or Area')
+                    sort_column = 'Country or Area'
+                elif 'geoAreaName' in latest_data.columns:
+                    display_columns.append('geoAreaName')
+                    sort_column = 'geoAreaName'
+                elif 'areaName' in latest_data.columns:
+                    display_columns.append('areaName')
+                    sort_column = 'areaName'
+                else:
+                    # Use country code column
+                    possible_country_code_columns = ['m49', 'geoAreaCode', 'areaCode', 'countryCode']
+                    for col in possible_country_code_columns:
+                        if col in latest_data.columns:
+                            display_columns.append(col)
+                            sort_column = col
+                            break
+                
+                # Add region if available
+                if 'Region Name' in latest_data.columns:
+                    display_columns.insert(1, 'Region Name')
+                
+                # Add series/indicator column
+                if 'seriesDescription' in latest_data.columns:
+                    display_columns.append('seriesDescription')
+                elif 'series' in latest_data.columns:
+                    display_columns.append('series')
+                elif 'Indicator' in latest_data.columns:
+                    display_columns.append('Indicator')
+                
+                # Add time and value columns
+                display_columns.extend(['timePeriodStart', 'value'])
+                
+                # Filter to only columns that actually exist
+                available_columns = [col for col in display_columns if col in latest_data.columns]
+                latest_data_display = latest_data[available_columns].copy()
+                
+                # Sort by country name for better readability
+                if sort_column in latest_data_display.columns:
+                    latest_data_display = latest_data_display.sort_values(sort_column)
+                
+                st.dataframe(latest_data_display, use_container_width=True)
+                
+                # Create summary statistics
+                st.markdown("#### Summary Statistics")
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    # Count unique countries using the determined country column
+                    if sort_column in latest_data.columns:
+                        unique_countries = latest_data[sort_column].nunique()
+                    else:
+                        unique_countries = len(latest_data)
+                    st.metric("Countries with Data", unique_countries)
+                
+                with col2:
+                    # Count unique indicators using available series column
+                    if 'seriesDescription' in latest_data.columns:
+                        unique_indicators = latest_data['seriesDescription'].nunique()
+                    elif 'series' in latest_data.columns:
+                        unique_indicators = latest_data['series'].nunique()
+                    elif 'Indicator' in latest_data.columns:
+                        unique_indicators = latest_data['Indicator'].nunique()
+                    else:
+                        unique_indicators = "N/A"
+                    st.metric("Unique Indicators", unique_indicators)
+                
+                with col3:
+                    if 'timePeriodStart' in latest_data.columns:
+                        year_range_actual = f"{latest_data['timePeriodStart'].min():.0f}-{latest_data['timePeriodStart'].max():.0f}"
+                    else:
+                        year_range_actual = "N/A"
+                    st.metric("Actual Year Range", year_range_actual)
+                
+                with col4:
+                    total_records = len(latest_data)
+                    st.metric("Total Records", total_records)
+                
+                # Create regional summary if region data is available
+                if 'Region Name' in latest_data.columns:
+                    st.markdown("#### Data Availability by Region")
+                    
+                    # Build aggregation dict based on available columns
+                    agg_dict = {}
+                    if sort_column in latest_data.columns:
+                        agg_dict[sort_column] = 'nunique'
+                    
+                    if 'seriesDescription' in latest_data.columns:
+                        agg_dict['seriesDescription'] = 'nunique'
+                    elif 'series' in latest_data.columns:
+                        agg_dict['series'] = 'nunique'
+                    elif 'Indicator' in latest_data.columns:
+                        agg_dict['Indicator'] = 'nunique'
+                    
+                    if 'timePeriodStart' in latest_data.columns:
+                        agg_dict['timePeriodStart'] = ['min', 'max']
+                    
+                    if 'value' in latest_data.columns:
+                        agg_dict['value'] = 'count'
+                    
+                    if agg_dict:
+                        region_summary = latest_data.groupby('Region Name').agg(agg_dict).round(2)
+                        
+                        # Flatten column names
+                        new_columns = []
+                        for col in region_summary.columns:
+                            if isinstance(col, tuple):
+                                if col[1] == 'nunique':
+                                    if col[0] == sort_column:
+                                        new_columns.append('Countries')
+                                    else:
+                                        new_columns.append('Indicators')
+                                elif col[1] == 'min':
+                                    new_columns.append('Earliest Year')
+                                elif col[1] == 'max':
+                                    new_columns.append('Latest Year')
+                                elif col[1] == 'count':
+                                    new_columns.append('Total Records')
+                                else:
+                                    new_columns.append(f"{col[0]} {col[1]}")
+                            else:
+                                new_columns.append(str(col))
+                        
+                        region_summary.columns = new_columns
+                        region_summary = region_summary.sort_values('Total Records', ascending=False) if 'Total Records' in region_summary.columns else region_summary
+                        
+                        st.dataframe(region_summary, use_container_width=True)
+                        
+            else:
+                selected_range = st.session_state.get('selected_year_range', (min_year, max_year))
+                st.warning(f"No data available within the selected year range {selected_range[0]}-{selected_range[1]}")
+    
     st.markdown("<hr>", unsafe_allow_html=True)
     st.write("")
 

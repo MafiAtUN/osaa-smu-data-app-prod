@@ -10,4 +10,4 @@ content/rag_documents/
 *.env
 .env.local
 .env.production
-.env.staging
+.env.stagingvenv/

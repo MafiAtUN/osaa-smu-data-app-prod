@@ -30,7 +30,7 @@ def check_password():
     # show input for password.
     st.image("content/OSAA-Data-logo.svg")
 
-    st.warning("This app is **in development**. It is only to be used by authorized members of OSAA.", icon=":material/warning:")
+    st.warning("This app is **in development**. It is only to be used by authorized members of OSAA.", icon="⚠️")
 
     st.markdown("Welcome to the Office of the Special Advisor to Africa's Strategic Management Unit's Data App. Please enter the app password to access the data app.")
 
@@ -57,16 +57,20 @@ if 'formatted_chat_history' not in st.session_state:
     st.session_state.formatted_chat_history = {}
 
 
+
+
+
+
 # create app pages
-home_page = st.Page("home.py", title="Home", icon=":material/home:")
-dashboard_page = st.Page("dashboard.py", title="Data Dashboard", icon=":material/analytics:")
-wb_dashboard_page = st.Page("wb_dashboard.py", title="WorldBank Data Dashboard", icon=":material/bar_chart:")
-sdg_dashboard_page = st.Page("sdg_dashboard.py", title="SDG Data Dashboard", icon=":material/show_chart:")
-acled_dashboard_page = st.Page("acled_dashboard.py", title="ACLED Data Dashboard", icon=":material/newspaper:")
-chatbot_page = st.Page("chatbot.py", title="OSAA General Chatbot", icon=":material/chat:")
-contradictory_analysis_page = st.Page("check_analysis.py", title="Contradictory Analysis Tool", icon=":material/check:")
-pid_checker_page = st.Page("pid_checker.py", title="PID Checker", icon=":material/task_alt:")
+home_page = st.Page("home.py", title="Home", icon="🏠")
+dashboard_page = st.Page("dashboard.py", title="Data Dashboard", icon="📊")
+wb_dashboard_page = st.Page("wb_dashboard.py", title="WorldBank Data Dashboard", icon="📈")
+sdg_dashboard_page = st.Page("sdg_dashboard.py", title="SDG Data Dashboard", icon="📉")
+acled_dashboard_page = st.Page("acled_dashboard.py", title="ACLED Data Dashboard", icon="📰")
+chatbot_page = st.Page("chatbot.py", title="OSAA General Chatbot", icon="💬")
+contradictory_analysis_page = st.Page("check_analysis.py", title="Contradictory Analysis Tool", icon="✅")
+pid_checker_page = st.Page("pid_checker.py", title="PID Checker", icon="📋")
 
 pg = st.navigation([home_page, dashboard_page, wb_dashboard_page, sdg_dashboard_page, acled_dashboard_page, chatbot_page, contradictory_analysis_page, pid_checker_page], position='hidden')
-st.set_page_config(page_title="SMU Data App", page_icon=":material/home:", layout="wide")
+st.set_page_config(page_title="SMU Data App", page_icon="🏠", layout="wide")
 pg.run()
