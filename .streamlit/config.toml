@@ -1,5 +1,5 @@
 [server]
-port = 8000
+port = 1000
 address = "0.0.0.0"
 enableCORS = false
 enableXsrfProtection = false
@@ -8,7 +8,8 @@ enableXsrfProtection = false
 gatherUsageStats = false
 
 [theme]
-primaryColor = "#FF6B6B"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F2F6"
-textColor = "#262730"
+primaryColor = "#2563EB"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0F172A"
+font = "sans serif"

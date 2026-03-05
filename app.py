@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+USE_APP_PASSWORD = os.getenv("USE_APP_PASSWORD", "false").lower() == "true"
+
 # check password
 def check_password():
     """
@@ -47,7 +49,7 @@ def check_password():
     return False
 
 
-if not check_password():
+if USE_APP_PASSWORD and not check_password():
     st.stop()
 
 # create session states
@@ -61,16 +63,11 @@ if 'formatted_chat_history' not in st.session_state:
 
 
 
-# create app pages
-home_page = st.Page("home.py", title="Home", icon="🏠")
-dashboard_page = st.Page("dashboard.py", title="Data Dashboard", icon="📊")
-wb_dashboard_page = st.Page("wb_dashboard.py", title="WorldBank Data Dashboard", icon="📈")
-sdg_dashboard_page = st.Page("sdg_dashboard.py", title="SDG Data Dashboard", icon="📉")
-acled_dashboard_page = st.Page("acled_dashboard.py", title="ACLED Data Dashboard", icon="📰")
-chatbot_page = st.Page("chatbot.py", title="OSAA General Chatbot", icon="💬")
-contradictory_analysis_page = st.Page("check_analysis.py", title="Contradictory Analysis Tool", icon="✅")
-pid_checker_page = st.Page("pid_checker.py", title="PID Checker", icon="📋")
-
-pg = st.navigation([home_page, dashboard_page, wb_dashboard_page, sdg_dashboard_page, acled_dashboard_page, chatbot_page, contradictory_analysis_page, pid_checker_page], position='hidden')
+# Simple routing - execute home.py as the main page
+# Navigation is handled via st.page_link in home.py
 st.set_page_config(page_title="SMU Data App", page_icon="🏠", layout="wide")
-pg.run()
+
+# Execute home.py
+with open("home.py", "r", encoding="utf-8") as f:
+    home_code = f.read()
+exec(compile(home_code, "home.py", "exec"), globals())
