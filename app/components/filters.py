@@ -1,4 +1,10 @@
-"""Reusable filter widgets for column selection, date ranges, and regions."""
+"""Reusable filter widgets for column selection, date ranges, and regions.
+
+Provides Streamlit sidebar and inline filter components that accept a
+``pd.DataFrame`` and return a filtered copy.  Key exports: ``column_filters``
+(generic column-value expander), ``date_range_filter``, and
+``region_country_filter`` for African-country scope selection.
+"""
 
 from __future__ import annotations
 

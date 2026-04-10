@@ -25,15 +25,15 @@ if "sdg_query_history" not in st.session_state:
 
 page_header(
     "🎯",
-    "UN SDG Dashboard",
-    "Explore Sustainable Development Goals data using AI-powered natural language queries or manual filters.",
+    "SDG Indicators",
+    "Explore Sustainable Development Goals data — ask AI in plain English or filter manually.",
     badge="AI",
 )
 
-goals_data = get_data(f"{BASE_URL}/v1/sdg/Goal/List?includechildren=false")
-indicators_data = get_data(f"{BASE_URL}/v1/sdg/Indicator/List")
+goals_data, goals_err = get_data(f"{BASE_URL}/v1/sdg/Goal/List?includechildren=false")
+indicators_data, _ind_err = get_data(f"{BASE_URL}/v1/sdg/Indicator/List")
 
-tab_ai, tab_manual = st.tabs(["🤖 AI-Powered Query", "⚙️ Manual Selection"])
+tab_ai, tab_manual = st.tabs(["🤖 Ask AI", "🔧 Filter Manually"])
 
 # ---- AI Tab ----
 with tab_ai:
@@ -76,8 +76,8 @@ with tab_ai:
 # ---- Manual Tab ----
 with tab_manual:
     st.markdown("**Select goals, indicators, countries, and a time range manually.**")
-    if isinstance(goals_data, Exception):
-        st.error(f"Error loading goals: {goals_data}")
+    if goals_err:
+        st.error(f"Error loading goals: {goals_err}")
     else:
         goal_title = st.selectbox(
             "Goals:",
@@ -87,7 +87,7 @@ with tab_manual:
         goal_code = next(g["code"] for g in goals_data if f"{g['code']}. {g['title']}" == goal_title)
 
         sel_ind_codes: list[str] = []
-        if indicators_data and not isinstance(indicators_data, Exception):
+        if indicators_data:
             filtered = [i for i in indicators_data if i.get("goal") == goal_code]
             opts = [f"{i['code']}: {i['description']}" for i in filtered]
             sel = st.multiselect(
@@ -108,13 +108,24 @@ with tab_manual:
         )
         if "SELECT ALL" in sel_regions:
             sel_regions = list(regions)
-        codes: list[str] = []
+
+        # Build country list from selected regions
+        m49_to_name = dict(zip(iso3_df["m49"].dropna(), iso3_df.dropna(subset=["m49"])["Country or Area"]))
+        region_m49: list[str] = []
         for r in sel_regions:
-            codes.extend(iso3_df.loc[iso3_df["Region Name"] == r, "m49"].tolist())
-        codes = list(set(codes))
-        m49_to_name = dict(zip(iso3_df["m49"], iso3_df["Country or Area"]))
-        defaults = [f"{c} - {m49_to_name[c]}" for c in codes]
-        available = [f"{row.m49} - {row['Country or Area']}" for _, row in iso3_df.iterrows()]
+            region_m49.extend(iso3_df.loc[iso3_df["Region Name"] == r, "m49"].dropna().tolist())
+        region_m49 = list(set(region_m49))
+        defaults = sorted(f"{c} - {m49_to_name[c]}" for c in region_m49 if c in m49_to_name)
+        available = sorted(
+            f"{row.m49} - {row['Country or Area']}"
+            for _, row in iso3_df.dropna(subset=["m49"]).iterrows()
+        )
+
+        # Reactive cascade: write new defaults directly into session state BEFORE the widget renders
+        if frozenset(st.session_state.get("m_sdg_regions_prev", [])) != frozenset(sel_regions):
+            st.session_state["m_sdg_regions_prev"] = list(sel_regions)
+            st.session_state["m_countries"] = defaults
+
         final = st.multiselect(
             "Countries:",
             available,
@@ -123,6 +134,7 @@ with tab_manual:
             placeholder="Select by country",
             key="m_countries",
         )
+        st.caption(f"{len(final)} countries selected.")
         sel_cc = [e.split(" - ")[0] for e in final]
 
         sel_years = st.slider("Years:", 1963, 2025, (1963, 2025), label_visibility="collapsed", key="m_years")

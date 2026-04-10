@@ -1,4 +1,10 @@
-"""Home page — hero section, data-source cards, tools cards, footer."""
+"""Home page — hero section, data-source feature cards, tools overview, and footer.
+
+Renders the OSAA SMU Data App landing page including a branded hero block with
+the base64-encoded logo, clickable feature cards for each data source (World Bank,
+SDG, ACLED, UNESCO, UN Energy, Cross-Source Studio), and an OSAA Tools section.
+No services are called here; the page is purely presentational.
+"""
 
 from __future__ import annotations
 
@@ -7,13 +13,13 @@ from pathlib import Path
 
 import streamlit as st
 
-# ── Logo (inline base64 so it renders inside the gradient hero div) ─────────
-_logo_path = Path(__file__).resolve().parent.parent / "assets" / "OSAA-Data-logo.svg"
+# ── Logo (base64-encoded once at import time for hero HTML) ─────────────────
+_logo_path = Path(__file__).resolve().parent.parent.parent / "content" / "OSAA Data.png"
 try:
     _logo_b64 = base64.b64encode(_logo_path.read_bytes()).decode()
     _logo_html = (
-        f'<img src="data:image/svg+xml;base64,{_logo_b64}" '
-        f'class="smu-hero-logo" alt="OSAA logo">'
+        f'<img src="data:image/png;base64,{_logo_b64}" '
+        f'class="smu-hero-logo" alt="OSAA SMU Data logo">'
     )
 except Exception:
     _logo_html = '<span style="font-size:4rem;line-height:1;">🌍</span>'
@@ -22,33 +28,28 @@ except Exception:
 st.markdown(
     f"""
     <div class="smu-hero">
-        <div class="smu-hero-content">
-            {_logo_html}
-            <div>
-                <h1 class="smu-hero-title">SMU Data App</h1>
-                <p class="smu-hero-org">UN OSAA · Strategic Monitoring Unit</p>
-                <p class="smu-hero-tagline">
-                    From raw data to clear, actionable intelligence —
-                    powered by AI and real-time data sources.
-                </p>
-            </div>
+        <div class="smu-hero-topbar">
+            <span class="smu-hero-topbar-dot"></span>
+            UN Office of the Special Adviser on Africa &nbsp;&middot;&nbsp; Strategic Management Unit
         </div>
-        <div class="smu-hero-stats">
-            <div class="smu-stat">
-                <div class="smu-stat-number">3</div>
-                <div class="smu-stat-label">Live APIs</div>
+        <div class="smu-hero-body">
+            <div class="smu-hero-logo-wrap">
+                {_logo_html}
             </div>
-            <div class="smu-stat">
-                <div class="smu-stat-number">15+</div>
-                <div class="smu-stat-label">AI Models</div>
-            </div>
-            <div class="smu-stat">
-                <div class="smu-stat-number">6</div>
-                <div class="smu-stat-label">AI Dashboards</div>
-            </div>
-            <div class="smu-stat">
-                <div class="smu-stat-number">RAG</div>
-                <div class="smu-stat-label">Retrieval AI</div>
+            <div class="smu-hero-text">
+                <h1 class="smu-hero-title">SMU Data App</h1>
+                <p class="smu-hero-tagline">
+                    AI-powered data intelligence platform for Africa &mdash;
+                    explore development, conflict, education, and energy data
+                    from live UN and international APIs, powered by large language models.
+                </p>
+                <div class="smu-hero-pills">
+                    <span class="smu-hero-pill">6 Live Data Sources</span>
+                    <span class="smu-hero-pill">15+ AI Models</span>
+                    <span class="smu-hero-pill">1,000+ Indicators</span>
+                    <span class="smu-hero-pill">RAG &amp; Vector Search</span>
+                    <span class="smu-hero-pill">4 OSAA Tools</span>
+                </div>
             </div>
         </div>
     </div>
@@ -59,171 +60,241 @@ st.markdown(
 # ── Page-link prefix (set by main.py based on entry point) ──────────────────
 _prefix = st.session_state.get("_page_prefix", "pages/")
 
-# ── Data Sources ─────────────────────────────────────────────────────────────
+# ── DATA SOURCES SECTION ─────────────────────────────────────────────────────
 st.markdown(
     """
     <div class="smu-section-heading">
-        <span class="smu-sh-label">Explore</span>
+        <span class="smu-sh-label">Live APIs &amp; Datasets</span>
         <span class="smu-sh-title">Data Sources</span>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# Row: Data Dashboard (col 1) + 3 grouped data sources (cols 2-4)
-c_dash, c_wb, c_sdg, c_acled = st.columns(4, gap="medium")
+# Row 1: Upload + World Bank + SDG
+col_upload, col_wb, col_sdg = st.columns(3, gap="medium")
 
-with c_dash:
-    st.page_link(
-        f"{_prefix}dashboard.py",
-        label=(
-            "📊 **Data Dashboard**\n\n"
-            "Upload your own CSV, Excel, or Parquet files. "
-            "Filter, visualize, and analyze datasets with AI-generated insights and chart builder."
-        ),
-        use_container_width=True,
-    )
-
-# World Bank group
-with c_wb:
+with col_upload:
     st.markdown(
         """
-        <div class="smu-ds-group">
-            <span class="smu-ds-group-icon">🌐</span>
-            <div>
-                <span class="smu-ds-group-name">World Bank</span>
-                <span class="smu-ds-group-tag">WDI · 15,000+ development indicators</span>
-            </div>
+        <div class="smu-feature-card" style="pointer-events:none;">
+            <span class="smu-feature-card-icon">📂</span>
+            <span class="smu-feature-card-title">Upload Your Data</span>
+            <span class="smu-feature-card-subtitle">CSV · Excel · Parquet</span>
+            <span class="smu-feature-card-desc">
+                Upload any dataset, apply filters, build charts with the drag-and-drop
+                chart builder, and get AI-generated analysis instantly.
+            </span>
         </div>
         """,
         unsafe_allow_html=True,
     )
     st.page_link(
-        f"{_prefix}wb_dashboard.py",
-        label="⚙️ **Manual Selection**\nPick indicators, countries & years.",
+        f"{_prefix}dashboard.py",
+        label="→ Open Data Explorer",
         use_container_width=True,
+    )
+
+with col_wb:
+    st.markdown(
+        """
+        <div class="smu-feature-card" style="pointer-events:none;">
+            <span class="smu-feature-card-icon">🌐</span>
+            <span class="smu-feature-card-title">World Bank</span>
+            <span class="smu-feature-card-subtitle">WDI · 15,000+ Development Indicators</span>
+            <span class="smu-feature-card-desc">
+                Access the World Bank's full development indicator database.
+                Query in plain English and let AI fetch, chart, and interpret the data.
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
     st.page_link(
         f"{_prefix}wb_dashboard_ai.py",
-        label="🤖 **AI-Powered Query**\nAsk in plain English — AI fetches the data.",
+        label="→ Explore World Bank Data",
         use_container_width=True,
     )
 
-# UN SDG group
-with c_sdg:
+with col_sdg:
     st.markdown(
         """
-        <div class="smu-ds-group">
-            <span class="smu-ds-group-icon">🎯</span>
-            <div>
-                <span class="smu-ds-group-name">UN SDG</span>
-                <span class="smu-ds-group-tag">All 17 Goals · UN official API</span>
-            </div>
+        <div class="smu-feature-card" style="pointer-events:none;">
+            <span class="smu-feature-card-icon">🎯</span>
+            <span class="smu-feature-card-title">UN SDG Indicators</span>
+            <span class="smu-feature-card-subtitle">All 17 Goals · Official UN API</span>
+            <span class="smu-feature-card-desc">
+                Explore all 17 Sustainable Development Goals with 658+ indicators
+                from the official UN SDG data platform, filtered for Africa.
+            </span>
         </div>
         """,
         unsafe_allow_html=True,
-    )
-    st.page_link(
-        f"{_prefix}sdg_dashboard.py",
-        label="⚙️ **Manual Selection**\nChoose goals, indicators & countries.",
-        use_container_width=True,
     )
     st.page_link(
         f"{_prefix}sdg_dashboard_ai.py",
-        label="🤖 **AI-Powered Query**\nDescribe what you need — AI handles the rest.",
+        label="→ Explore SDG Indicators",
         use_container_width=True,
     )
 
-# ACLED group
-with c_acled:
+st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
+
+# Row 2: ACLED + UNESCO + Energy
+col_acled, col_edu, col_energy = st.columns(3, gap="medium")
+
+with col_acled:
     st.markdown(
         """
-        <div class="smu-ds-group">
-            <span class="smu-ds-group-icon">⚔️</span>
-            <div>
-                <span class="smu-ds-group-name">ACLED</span>
-                <span class="smu-ds-group-tag">Armed Conflict &amp; Event Data</span>
-            </div>
+        <div class="smu-feature-card" style="pointer-events:none;">
+            <span class="smu-feature-card-icon">⚔️</span>
+            <span class="smu-feature-card-title">ACLED Conflict Data</span>
+            <span class="smu-feature-card-subtitle">Armed Conflict &amp; Event Data</span>
+            <span class="smu-feature-card-desc">
+                Real-time conflict event data for Africa. Query by region, event type,
+                date range, or fatalities — with AI interpretation and mapping.
+            </span>
         </div>
         """,
         unsafe_allow_html=True,
     )
     st.page_link(
-        f"{_prefix}acled_dashboard.py",
-        label="⚙️ **Manual Selection**\nSelect event types, regions & dates.",
-        use_container_width=True,
-    )
-    st.page_link(
         f"{_prefix}acled_dashboard_ai.py",
-        label="🤖 **AI-Powered Query**\nQuery conflict data in plain English.",
+        label="→ Query Conflict Data",
         use_container_width=True,
     )
 
-# ── OSAA Tools ───────────────────────────────────────────────────────────────
+with col_edu:
+    st.markdown(
+        """
+        <div class="smu-feature-card" style="pointer-events:none;">
+            <span class="smu-feature-card-icon">🎓</span>
+            <span class="smu-feature-card-title">UNESCO Education</span>
+            <span class="smu-feature-card-subtitle">UIS · 333 Education Indicators</span>
+            <span class="smu-feature-card-desc">
+                UNESCO Institute for Statistics data — literacy rates, enrolment,
+                teacher ratios, and more across African countries.
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        f"{_prefix}un_education.py",
+        label="→ Explore Education Data",
+        use_container_width=True,
+    )
+
+with col_energy:
+    st.markdown(
+        """
+        <div class="smu-feature-card" style="pointer-events:none;">
+            <span class="smu-feature-card-icon">⚡</span>
+            <span class="smu-feature-card-title">UN Energy Data</span>
+            <span class="smu-feature-card-subtitle">Energy Stats &amp; Balance · M49 Countries</span>
+            <span class="smu-feature-card-desc">
+                UN energy statistics and energy balance — 75 commodities, 53 transactions,
+                covering production, trade, and consumption across Africa.
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        f"{_prefix}un_energy.py",
+        label="→ Explore Energy Data",
+        use_container_width=True,
+    )
+
+# ── OSAA TOOLS SECTION ───────────────────────────────────────────────────────
 st.markdown(
     """
     <div class="smu-section-heading tools">
-        <span class="smu-sh-label">Analysis &amp; Compliance</span>
+        <span class="smu-sh-label">AI-Powered Analysis &amp; Compliance</span>
         <span class="smu-sh-title">OSAA Tools</span>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
+tool_cols = st.columns(4, gap="medium")
+
 _tools = [
     (
         f"{_prefix}chatbot.py",
         "💬",
         "OSAA Chatbot",
-        "Conversational AI with institutional OSAA context. Ask questions about Africa, UN mandates, and OSAA publications.",
+        "Conversational AI",
+        "Conversational AI grounded in OSAA institutional context. Ask about Africa, "
+        "UN mandates, and OSAA publications.",
     ),
     (
         f"{_prefix}check_analysis.py",
         "⚖️",
         "Analysis Checker",
-        "RAG-powered tool that checks whether your narrative analysis contradicts previous OSAA publications.",
+        "RAG · Consistency Check",
+        "RAG-powered tool that verifies whether your narrative contradicts previous "
+        "OSAA publications and research.",
     ),
     (
         f"{_prefix}pid_checker.py",
         "📋",
         "PID Checker",
-        "Evaluate Project Initiation Documents against OSAA's 7-dimension criteria framework for each thematic cluster.",
+        "7-Dimension Evaluation",
+        "Evaluate Project Initiation Documents against OSAA's 7-dimension criteria "
+        "framework for each thematic cluster.",
+    ),
+    (
+        f"{_prefix}chat_library.py",
+        "📚",
+        "Chat Library",
+        "Session History",
+        "Browse and revisit all previous AI analysis conversations across every "
+        "page and tool in the app.",
     ),
 ]
 
-tool_cols = st.columns(3, gap="medium")
-for col, (page, icon, label, desc) in zip(tool_cols, _tools):
+for col, (page, icon, label, subtitle, desc) in zip(tool_cols, _tools):
     with col:
-        st.page_link(
-            page,
-            label=f"{icon} **{label}**\n\n{desc}",
-            use_container_width=True,
+        st.markdown(
+            f"""
+            <div class="smu-feature-card" style="pointer-events:none;">
+                <span class="smu-feature-card-icon">{icon}</span>
+                <span class="smu-feature-card-title">{label}</span>
+                <span class="smu-feature-card-subtitle">{subtitle}</span>
+                <span class="smu-feature-card-desc">{desc}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+        st.page_link(page, label=f"→ Open {label}", use_container_width=True)
 
-# ── Notes expander ────────────────────────────────────────────────────────────
-st.markdown("<br>", unsafe_allow_html=True)
+# ── IMPORTANT NOTES ───────────────────────────────────────────────────────────
+st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 with st.expander("ℹ️ Important Notes", expanded=False):
     st.markdown(
         """
         **AI-Powered Features**
-        World Bank, ACLED, and UN SDG dashboards all include an AI mode that accepts natural language queries.
-        Manual filter modes are also available for all three.
+        All data dashboards include an AI mode that accepts natural language queries.
+        Manual filter modes are also available for most sources.
 
-        **Analysis Tools**
-        Every data page includes an AI analysis assistant and a graph-generation tool.
+        **Analysis & Visualization Tools**
+        Every data page includes an AI analysis assistant and a chart-generation tool.
         These are powered by large language models and are intended for **exploratory use only**.
 
-        **Exploratory Use Only**
-        Always verify AI-generated results against official sources before including them in publications.
+        **Always Verify**
+        Always verify AI-generated results against official sources before including
+        them in publications or policy documents.
 
         **Data Sources**
-        - World Bank data is fetched live from the World Bank API.
-        - SDG data is retrieved from the official UN SDG API.
-        - ACLED data requires valid API credentials configured in secrets.
+        - **World Bank**: Fetched live from the World Bank API (WDI database).
+        - **UN SDG**: Retrieved from the official UN SDG SDMX API.
+        - **ACLED**: Requires valid API credentials configured in secrets.
+        - **UNESCO**: UNESCO Institute for Statistics (UIS) via data.un.org.
+        - **UN Energy**: UN energy statistics via SDMX at data.un.org.
         """
     )
 
-# ── Footer ────────────────────────────────────────────────────────────────────
+# ── FOOTER ────────────────────────────────────────────────────────────────────
 st.markdown(
     """
     <div class="smu-footer">
@@ -231,7 +302,7 @@ st.markdown(
             ⚠️&nbsp; Development version — for UN OSAA internal use only
         </span>
         <div class="smu-footer-info">
-            Created by the SMU Data Team · UN OSAA<br>
+            Built by the SMU Data Team &nbsp;·&nbsp; UN OSAA<br>
             © UNOSAA 2025 &nbsp;·&nbsp;
             <a href="mailto:islam50@un.org">islam50@un.org</a>
         </div>

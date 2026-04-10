@@ -1,4 +1,11 @@
-"""Contradictory analysis checker page (RAG-based)."""
+"""Analysis Checker page — RAG-based fact-check for analytical text.
+
+Accepts a block of text (e.g. a report excerpt or data-backed claim) and uses a
+retrieval-augmented generation pipeline to identify potential contradictions with
+the OSAA knowledge base stored in the local vectorstore.  Calls
+``data_service.get_retriever`` for document retrieval and ``llm_service.get_llm``
+for the LangChain LCEL chain.
+"""
 
 import streamlit as st
 from langchain_core.output_parsers import StrOutputParser

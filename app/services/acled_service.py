@@ -1,4 +1,11 @@
-"""ACLED API access: authentication, data fetching, and AI query parsing."""
+"""ACLED API access: authentication, data fetching, and AI query parsing.
+
+Wraps the Armed Conflict Location and Event Data (ACLED) REST API to fetch
+conflict-event records for African countries.  Key exports: ``fetch_acled_data``
+for raw DataFrame retrieval, ``parse_acled_query_with_llm`` for converting
+natural-language questions into ACLED API filter parameters, and
+``ACLED_QUERY_SUGGESTIONS`` for pre-built UI pill prompts.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +18,7 @@ import requests
 import streamlit as st
 
 from app.core.config import get_settings
-from app.core.logging import get_logger
+from app.core.logging import generic_user_error, get_logger
 from app.services.geo_service import (
     ACLED_REGION_MAPPING,
     ACLED_SUB_EVENT_TYPES,
@@ -42,15 +49,16 @@ def get_access_token(username: str, password: str) -> Optional[str]:
                 "grant_type": "password",
                 "client_id": "acled",
             },
+            timeout=20,
         )
         if resp.status_code == 200:
             return resp.json()["access_token"]
-        logger.warning("ACLED token request failed: %s %s", resp.status_code, resp.text)
-        st.error(f"Failed to get access token: {resp.status_code} {resp.text}")
+        logger.warning("ACLED token request failed with status %s", resp.status_code)
+        st.error(generic_user_error("Failed to authenticate with ACLED. Please check the server configuration."))
         return None
     except Exception as exc:
         logger.exception("Error getting ACLED access token")
-        st.error(f"Error getting access token: {exc}")
+        st.error(generic_user_error("Failed to authenticate with ACLED."))
         return None
 
 
@@ -61,13 +69,16 @@ def get_data(url: str, access_token: str) -> Optional[dict]:
         resp = requests.get(
             url,
             headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+            timeout=30,
         )
         if resp.status_code == 200:
             return resp.json()
-        st.error(f"API request failed: {resp.status_code} {resp.text}")
+        logger.warning("ACLED data request failed with status %s", resp.status_code)
+        st.error(generic_user_error("ACLED request failed. Please try again later."))
         return None
     except Exception as exc:
-        st.error(f"Error making API request: {exc}")
+        logger.exception("Error making ACLED request")
+        st.error(generic_user_error("ACLED request failed."))
         return None
 
 
@@ -79,13 +90,16 @@ def get_data_with_params(base_url: str, access_token: str, parameters: dict) -> 
             base_url,
             params=parameters,
             headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+            timeout=30,
         )
         if resp.status_code == 200:
             return resp.json()
-        st.error(f"API request failed: {resp.status_code} {resp.text}")
+        logger.warning("ACLED parameterized request failed with status %s", resp.status_code)
+        st.error(generic_user_error("ACLED request failed. Please try again later."))
         return None
     except Exception as exc:
-        st.error(f"Error making API request: {exc}")
+        logger.exception("Error making ACLED parameterized request")
+        st.error(generic_user_error("ACLED request failed."))
         return None
 
 
@@ -217,7 +231,7 @@ Return EXACTLY 7 lines. No extra text before or after."""
 
     except Exception as exc:
         logger.exception("Error parsing ACLED query with LLM")
-        st.error(f"Error parsing query: {exc}")
+        st.error(generic_user_error("Could not interpret the ACLED query. Please rephrase it."))
         return None
 
 
@@ -239,9 +253,8 @@ def build_acled_api_params(parsed: dict[str, Any]) -> dict[str, Any]:
     from_d = parsed.get("from_date")
     to_d = parsed.get("to_date")
     if from_d and to_d:
-        params["event_date"] = from_d
-        params["event_date_where"] = ">="
-        params["event_date_end"] = to_d
+        params["event_date"] = f"{from_d}:{to_d}"
+        params["event_date_where"] = "BETWEEN"
     elif from_d:
         params["event_date"] = from_d
         params["event_date_where"] = ">="

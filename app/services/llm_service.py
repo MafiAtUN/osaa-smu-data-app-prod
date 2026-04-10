@@ -6,6 +6,7 @@ All other modules should import ``get_llm`` (provider-agnostic) or
 
 from __future__ import annotations
 
+import ast
 import builtins
 import os
 from typing import Any
@@ -257,6 +258,18 @@ UNSAFE_KEYWORDS: list[str] = [
     "open(", "eval(", "exec(", "__", "shutil", "pathlib",
 ]
 
+UNSAFE_NAMES: set[str] = {
+    "__import__", "breakpoint", "compile", "delattr", "dir", "eval", "exec",
+    "getattr", "globals", "help", "input", "locals", "memoryview", "object",
+    "open", "setattr", "type", "vars",
+}
+
+UNSAFE_CALL_ATTRIBUTES: set[str] = {
+    "savefig", "to_clipboard", "to_csv", "to_excel", "to_feather", "to_gbq",
+    "to_hdf", "to_html", "to_json", "to_latex", "to_orc", "to_parquet",
+    "to_pickle", "to_sql", "to_xml", "write_html", "write_image", "write_json",
+}
+
 SAFE_IMPORTS: list[str] = [
     "import pandas", "import numpy", "import plotly", "import matplotlib",
     "import seaborn", "from pandas", "from numpy", "from plotly",
@@ -271,12 +284,28 @@ def validate_code(code: str) -> None:
         if keyword in lowered:
             raise ValueError(f"Unsafe keyword detected: {keyword}")
 
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as exc:
+        raise ValueError(f"Invalid Python syntax: {exc.msg}") from exc
+
     for line in code.splitlines():
         stripped = line.strip().lower()
         if not (stripped.startswith("import ") or (stripped.startswith("from ") and " import " in stripped)):
             continue
         if not any(safe in stripped for safe in SAFE_IMPORTS):
             raise ValueError(f"Unsafe import detected: {stripped}")
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and node.id in UNSAFE_NAMES:
+            raise ValueError(f"Unsafe name detected: {node.id}")
+        if isinstance(node, ast.Attribute):
+            if node.attr.startswith("_"):
+                raise ValueError(f"Unsafe attribute detected: {node.attr}")
+            if node.attr in UNSAFE_CALL_ATTRIBUTES:
+                raise ValueError(f"Unsafe method detected: {node.attr}")
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in UNSAFE_NAMES:
+            raise ValueError(f"Unsafe call detected: {node.func.id}")
 
 
 def clean_import_statements(code: str) -> str:

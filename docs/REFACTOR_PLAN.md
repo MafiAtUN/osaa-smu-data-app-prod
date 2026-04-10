@@ -209,3 +209,38 @@ These are old versions; `app.py` references only `pages/` versions.
 8. Delete dead files.
 9. Write documentation and minimal tests.
 10. Final polish: spelling, linting, consistency.
+
+---
+
+## Refactoring Pass — 2026-03-04
+
+Second structured refactoring pass performed after the initial restructure was complete.
+Three parallel audit agents identified targeted issues in the already-healthy codebase.
+
+### What Was Done
+
+| Area | Change |
+|------|--------|
+| **Deleted** | `app/pages/wb_dashboard.py`, `sdg_dashboard.py`, `acled_dashboard.py` — manual-only pages superseded by AI versions |
+| **Deleted** | `=0.4.7` (root) — stray pip artefact from a failed install command |
+| **Created** | `app/core/constants.py` — centralized `PAGE_DISPLAY_NAMES`, `SOURCE_DISPLAY_LABELS`, `CACHE_TTL_HOURS` |
+| **Bug fix** | `sdg_service.get_data()` — changed from returning `Exception(...)` objects to `(data, error_msg)` tuple; removed all `isinstance(result, Exception)` anti-patterns in callers |
+| **Bug fix** | `chat_history_service.py` — wrapped all public functions in `try/except` with safe defaults and `logger.warning()`; added `get_logger` import |
+| **DRY** | `undata_service.py` — extracted `_fetch_energy_sdmx()` private helper; `fetch_energy_stats()` and `fetch_energy_balance()` are now thin wrappers (~45 duplicate lines removed) |
+| **Removed** | Deprecated `llm_data_analysis()` from `analysis.py` (zero callers confirmed) |
+| **Constants** | `chat_library.py` now imports `SOURCE_DISPLAY_LABELS` from `app.core.constants` |
+| **Navigation** | `un_data_explorer.py` registered in `app/main.py` (was missing) |
+| **Badge** | `chatbot.py` `page_header()` now passes `badge="AI"` for consistency |
+| **Docstrings** | Added/improved module-level docstrings across ~27 files (all service, component, core, and page files) |
+| **Type hints** | Added complete param and return type annotations to public functions in key service and component files |
+| **`__init__.py`** | All six package `__init__.py` files now declare `__all__` and re-export public APIs |
+| **Docs** | `ARCHITECTURE.md` fully rewritten to reflect 15-page structure, UN Data module, cross-source sub-package, and constants |
+
+### What Was Deferred
+
+| Area | Reason |
+|------|--------|
+| Consolidating 6 LLM query parsers | Each has distinct prompt engineering; identical structure but different behaviour — merge risk too high |
+| Extracting AI+Manual tab pattern across 6 pages | High regression surface; different session-state keys and service calls |
+| Changing proxy-patching strategy | Azure-specific; needs integration testing environment |
+| Touching cross-source module internals | Complex, new, well-tested; leave stable |

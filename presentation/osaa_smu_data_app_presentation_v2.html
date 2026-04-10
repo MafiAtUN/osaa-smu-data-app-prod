@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSAA SMU Data App | UN Evidence Platform</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink-1: #0b1220;
+  --ink-2: #1d2a3f;
+  --ink-3: #344563;
+  --muted: #6b778c;
+  --bg: #f2f5f9;
+  --card: #ffffff;
+  --line: #d6dde8;
+  --brand: #009edb;
+  --brand-2: #41bceb;
+  --accent: #0f766e;
+  --violet: #5b4bdb;
+  --blue: #0f6bcf;
+  --green: #1f9d55;
+  --danger: #d64545;
+  --orange: #c2410c;
+  --shadow: 0 10px 30px rgba(13,25,45,.12);
+}
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: radial-gradient(1200px 700px at 20% 0%, #223657 0%, #0e1728 45%, #050a14 100%);
+  color: var(--ink-1);
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+}
+
+.deck {
+  width: min(1720px, 100vw); height: 100vh; margin: 0 auto;
+  background: var(--bg); position: relative; overflow: hidden;
+  box-shadow: 0 0 80px rgba(0,0,0,.5);
+}
+
+.topbar {
+  height: 64px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 22px;
+  background: linear-gradient(135deg, #0b2f6b, #0f4c9a);
+  color: #f0f5ff; border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-badge {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 700; color: white;
+}
+.brand h1 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: .01em; }
+.brand p { font-size: 12px; color: #b9c8df; }
+
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.btn {
+  border: 1px solid transparent; border-radius: 12px; padding: 8px 12px;
+  background: white; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.btn.dark { background: rgba(255,255,255,.08); color: #f0f5ff; border-color: rgba(255,255,255,.2); }
+.btn.brand { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: white; }
+
+.layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 64px); }
+
+.sidebar {
+  border-right: 1px solid var(--line); background: #f8fbff;
+  padding: 14px; overflow-y: auto;
+}
+.sidebar h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.agenda { display: flex; flex-direction: column; gap: 7px; }
+.agenda button {
+  text-align: left; background: white; border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px; color: var(--ink-2); font-size: 12px; cursor: pointer;
+}
+.agenda button.active { border-color: var(--brand); background: #eef7ff; box-shadow: inset 0 0 0 1px rgba(0,158,219,.15); }
+.sidebar .note {
+  margin-top: 14px; background: linear-gradient(160deg, #eef6ff, #f7fbff);
+  border: 1px solid #b8d7f4; border-radius: 12px; padding: 10px;
+  font-size: 12px; color: #1f4f81; line-height: 1.5;
+}
+
+.main { position: relative; overflow: hidden; }
+.slides { width: 100%; height: 100%; position: relative; }
+.slide {
+  position: absolute; inset: 0; display: none;
+  padding: 22px 32px 28px; overflow-y: auto;
+}
+.slide.active { display: block; animation: slideIn .3s ease; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+
+.kicker { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--brand); font-weight: 700; }
+.slide h2 { font-family: 'Space Grotesk', sans-serif; color: var(--ink-1); font-size: 32px; line-height: 1.1; margin-top: 4px; }
+.sub { margin-top: 8px; color: var(--muted); font-size: 15px; max-width: 980px; line-height: 1.55; }
+
+.grid-2 { display: grid; grid-template-columns: 1.08fr .92fr; gap: 16px; margin-top: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: var(--shadow); padding: 14px;
+}
+
+.stat-strip {
+  margin-top: 14px; background: linear-gradient(135deg, #162840, #0f1b2f);
+  border-radius: 14px; padding: 14px; color: white;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+}
+.stat-box {
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
+  border-radius: 10px; text-align: center; padding: 10px 8px;
+}
+.stat-box .n { font-family: 'Space Grotesk'; font-size: 22px; font-weight: 700; }
+.stat-box .l { font-size: 11px; color: #d9e4f6; margin-top: 2px; }
+
+.list { margin-top: 8px; display: grid; gap: 8px; }
+.list .row {
+  border: 1px solid var(--line); border-radius: 10px; background: #fbfdff;
+  padding: 10px 11px; display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start;
+}
+.list .icon {
+  width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; color: white;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+}
+.list b { font-size: 13px; color: var(--ink-2); }
+.list p { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+
+.pill-row { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  background: #eef5ff; color: var(--ink-2); border: 1px solid #c9dbf7;
+  border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 600;
+}
+
+.pipeline { margin-top: 14px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.step {
+  background: white; border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px; min-height: 120px; position: relative;
+}
+.step .num {
+  position: absolute; top: -10px; left: 10px; width: 24px; height: 24px;
+  border-radius: 50%; background: var(--brand); color: white;
+  font-size: 12px; font-weight: 700; display: grid; place-items: center;
+}
+.step h4 { font-size: 13px; margin-top: 10px; color: var(--ink-2); }
+.step p { font-size: 12px; margin-top: 6px; color: var(--muted); line-height: 1.45; }
+
+.code-block {
+  margin-top: 8px; background: #0f1b2f; color: #d9e7ff;
+  border: 1px solid #2b456b; border-radius: 10px; padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px; line-height: 1.5; white-space: pre-wrap;
+}
+
+.timeline { margin-top: 12px; display: grid; gap: 10px; }
+.milestone {
+  display: grid; grid-template-columns: 90px 1fr; gap: 10px;
+  border: 1px solid var(--line); border-radius: 12px; background: white; padding: 10px;
+}
+.milestone .time {
+  border-radius: 8px; background: linear-gradient(135deg, #eef4ff, #dce9ff); color: #114989;
+  display: grid; place-items: center; font-family: 'Space Grotesk'; font-weight: 700; font-size: 13px; text-align: center;
+}
+.milestone h4 { font-size: 13px; color: var(--ink-2); }
+.milestone p { margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+.cost-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.cost-card { border: 1px solid var(--line); border-radius: 14px; background: white; box-shadow: var(--shadow); overflow: hidden; }
+.cost-head { padding: 10px 12px; font-size: 14px; font-weight: 700; }
+.cost-body { padding: 10px 12px; }
+.cost-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
+.cost-row:last-child { border-bottom: 0; }
+.total { margin-top: 8px; border-top: 2px solid var(--line); padding-top: 8px; display: flex; justify-content: space-between; font-weight: 700; color: var(--ink-2); }
+
+.qr-grid { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.qr-card {
+  border: 1px solid var(--line); border-radius: 14px; background: white;
+  box-shadow: var(--shadow); padding: 12px; text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+}
+.qr-card img {
+  width: 100%; max-width: 190px; aspect-ratio: 1 / 1; object-fit: contain;
+  border-radius: 10px; border: 1px solid var(--line); background: #ffffff; padding: 6px;
+}
+.qr-card h4 { margin-top: 10px; font-size: 14px; color: var(--ink-2); }
+.qr-card p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+
+.module-grid { margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.module-card {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+  background: white; position: relative; overflow: hidden;
+}
+.module-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.module-card.data::before { background: linear-gradient(90deg, #0f6bcf, #41bceb); }
+.module-card.ai::before { background: linear-gradient(90deg, #5b4bdb, #9b8aff); }
+.module-card.gov::before { background: linear-gradient(90deg, #0f766e, #34d399); }
+.module-card h4 { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.module-card p { margin-top: 5px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.module-card .tag { margin-top: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.module-card.data .tag { color: #0f6bcf; }
+.module-card.ai .tag { color: #5b4bdb; }
+.module-card.gov .tag { color: #0f766e; }
+
+.badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.badge {
+  border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 600;
+  background: #f1f5ff; color: #1a3b72; border: 1px solid #d0ddf5;
+}
+
+.compare-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+.compare-table th { background: #1d2a3f; color: #e8efff; padding: 8px 12px; text-align: left; font-weight: 600; }
+.compare-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); color: var(--ink-3); }
+.compare-table tr:last-child td { border-bottom: 0; }
+.compare-table tr:nth-child(even) td { background: #f8fbff; }
+.compare-table .check { color: #1f9d55; font-weight: 700; }
+.compare-table .cross { color: #d64545; font-weight: 700; }
+.compare-table .partial { color: #d97706; font-weight: 700; }
+
+.footer-nav { position: absolute; right: 16px; bottom: 12px; display: flex; gap: 8px; }
+.nav-btn {
+  background: #0f1b2f; color: white; border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px; width: 38px; height: 38px; font-size: 14px; cursor: pointer;
+}
+
+.progress {
+  position: absolute; left: 0; bottom: 0; height: 4px; width: 0;
+  background: linear-gradient(90deg, var(--brand), var(--blue), var(--accent));
+}
+.counter {
+  position: absolute; left: 300px; bottom: 12px; background: #0f1b2f;
+  color: #f4f8ff; border-radius: 999px; font-size: 11px; font-weight: 600; padding: 6px 10px;
+}
+
+.reveal { opacity: 0; transform: translateY(8px); transition: all .35s ease; }
+.slide.active .reveal { opacity: 1; transform: translateY(0); }
+.slide.active .reveal.r2 { transition-delay: .07s; }
+.slide.active .reveal.r3 { transition-delay: .14s; }
+.slide.active .reveal.r4 { transition-delay: .21s; }
+.slide.active .reveal.r5 { transition-delay: .28s; }
+
+@media (max-width: 1320px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .counter { left: 14px; }
+  .grid-2, .grid-3, .grid-4, .pipeline, .module-grid, .cost-grid, .qr-grid { grid-template-columns: 1fr; }
+  .stat-strip { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge">UN</div>
+      <div>
+        <h1>OSAA SMU Data App</h1>
+        <p>AI-enabled evidence platform for UN analytical workflows</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn dark" id="jumpAgenda">Agenda</button>
+      <button class="btn dark" id="toggleTheme">Contrast</button>
+      <button class="btn brand" id="fullscreenBtn">Fullscreen</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar" id="agendaPanel">
+      <h3>Presentation Agenda</h3>
+      <div class="agenda" id="agendaButtons"></div>
+      <div class="note">
+        For UN colleagues: see how policy questions become tested evidence in minutes — with real API data, local LLM options for sensitive analysis, and full source transparency.
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="slides" id="slides">
+
+        <!-- SLIDE 01: EXECUTIVE SUMMARY -->
+        <section class="slide active" data-title="01 | Why This Matters for UN">
+          <div class="kicker reveal">Executive Summary</div>
+          <h2 class="reveal r2">Policy evidence in minutes — not days.</h2>
+          <p class="sub reveal r3">The SMU Data App replaces fragmented multi-portal workflows with a single AI-guided environment. UN colleagues at OSAA, DESA, DPPA, DPO, OCHA, and UNDP can retrieve real data, test hypotheses, and produce explainable outputs without writing code or manually joining spreadsheets.</p>
+
+          <div class="stat-strip reveal r4">
+            <div class="stat-box"><div class="n">6+</div><div class="l">Live Data APIs</div></div>
+            <div class="stat-box"><div class="n">1,000+</div><div class="l">Indicators</div></div>
+            <div class="stat-box"><div class="n">10+</div><div class="l">Analytical Modules</div></div>
+            <div class="stat-box"><div class="n">8+</div><div class="l">LLM Options</div></div>
+            <div class="stat-box"><div class="n">Local</div><div class="l">Sensitive-data Mode</div></div>
+          </div>
+
+          <div class="grid-2" style="margin-top:14px;">
+            <div class="card reveal r3">
+              <div class="list">
+                <div class="row"><div class="icon">A</div><div><b>Ask in plain language</b><p>"Show conflict trends in CAR alongside GDP and literacy rates, 2010–2024."</p></div></div>
+                <div class="row"><div class="icon">B</div><div><b>Real data, real-time</b><p>Pulls live from ACLED, World Bank, SDG, UNESCO, UN Energy APIs — no spreadsheet needed.</p></div></div>
+                <div class="row"><div class="icon">C</div><div><b>Test hypotheses instantly</b><p>Correlation, lag, trend breaks, data-gap warnings — all in one workflow.</p></div></div>
+                <div class="row"><div class="icon">D</div><div><b>Sensitive data stays local</b><p>Switch to local Ollama model — nothing leaves your machine.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r4" style="background:linear-gradient(155deg,#11213a,#152a49);color:white;border-color:#203b63;">
+              <h3 style="font-family:'Space Grotesk';font-size:17px;">Built for UN workflows</h3>
+              <p style="margin-top:8px;color:#d8e4f6;line-height:1.6;font-size:13px;">This is not a dashboard tool. It is an AI-enabled analytical environment where a UN economist, policy analyst, or peacekeeping planner can move from a raw question to a tested, citable, chart-ready answer in minutes — using only authentic API sources.</p>
+              <div class="pill-row" style="margin-top:12px;">
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Zero data hallucination</span>
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Source-traceable</span>
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Sensitive-data safe</span>
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Agenda 2030 aligned</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 02: THE CURRENT PROBLEM -->
+        <section class="slide" data-title="02 | The Problem Today">
+          <div class="kicker">The Current Reality</div>
+          <h2>How UN analytical work actually happens today</h2>
+          <p class="sub">Before this tool existed, a policy analyst at OSAA or DESA needing multi-source evidence for a brief would follow a painful multi-day process. This is the workflow we replace.</p>
+
+          <div style="margin-top:14px;">
+            <svg viewBox="0 0 1300 200" style="width:100%;height:170px;">
+              <defs>
+                <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/>
+                </marker>
+              </defs>
+              <!-- Step boxes: old workflow -->
+              <rect x="10" y="50" width="155" height="90" rx="10" fill="#fff0f0" stroke="#fca5a5"/>
+              <text x="87" y="88" font-size="13" font-weight="600" fill="#9f1239" text-anchor="middle" font-family="Space Grotesk">1. Find Sources</text>
+              <text x="87" y="106" font-size="10" fill="#9f1239" text-anchor="middle">WB portal, ACLED site,</text>
+              <text x="87" y="120" font-size="10" fill="#9f1239" text-anchor="middle">SDG API, UIS, UN Data...</text>
+
+              <line x1="165" y1="95" x2="195" y2="95" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arr)"/>
+
+              <rect x="195" y="50" width="155" height="90" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+              <text x="272" y="88" font-size="13" font-weight="600" fill="#9a3412" text-anchor="middle" font-family="Space Grotesk">2. Download CSVs</text>
+              <text x="272" y="106" font-size="10" fill="#9a3412" text-anchor="middle">Different formats,</text>
+              <text x="272" y="120" font-size="10" fill="#9a3412" text-anchor="middle">column names vary</text>
+
+              <line x1="350" y1="95" x2="380" y2="95" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arr)"/>
+
+              <rect x="380" y="50" width="155" height="90" rx="10" fill="#fefce8" stroke="#fde047"/>
+              <text x="457" y="88" font-size="13" font-weight="600" fill="#78350f" text-anchor="middle" font-family="Space Grotesk">3. Manual Join</text>
+              <text x="457" y="106" font-size="10" fill="#78350f" text-anchor="middle">Align country codes,</text>
+              <text x="457" y="120" font-size="10" fill="#78350f" text-anchor="middle">year keys, impute gaps</text>
+
+              <line x1="535" y1="95" x2="565" y2="95" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arr)"/>
+
+              <rect x="565" y="50" width="155" height="90" rx="10" fill="#f0fdf4" stroke="#86efac"/>
+              <text x="642" y="88" font-size="13" font-weight="600" fill="#14532d" text-anchor="middle" font-family="Space Grotesk">4. EDA in Python</text>
+              <text x="642" y="106" font-size="10" fill="#14532d" text-anchor="middle">or Excel/SPSS —</text>
+              <text x="642" y="120" font-size="10" fill="#14532d" text-anchor="middle">repeat per question</text>
+
+              <line x1="720" y1="95" x2="750" y2="95" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arr)"/>
+
+              <rect x="750" y="50" width="165" height="90" rx="10" fill="#eef2ff" stroke="#a5b4fc"/>
+              <text x="832" y="88" font-size="13" font-weight="600" fill="#3730a3" text-anchor="middle" font-family="Space Grotesk">5. Hypothesis Test</text>
+              <text x="832" y="106" font-size="10" fill="#3730a3" text-anchor="middle">Correlation, regressions,</text>
+              <text x="832" y="120" font-size="10" fill="#3730a3" text-anchor="middle">chart creation — manual</text>
+
+              <line x1="915" y1="95" x2="945" y2="95" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arr)"/>
+
+              <rect x="945" y="50" width="165" height="90" rx="10" fill="#fdf2f8" stroke="#f0abfc"/>
+              <text x="1027" y="88" font-size="13" font-weight="600" fill="#701a75" text-anchor="middle" font-family="Space Grotesk">6. Write Brief</text>
+              <text x="1027" y="106" font-size="10" fill="#701a75" text-anchor="middle">Hope data hasn't</text>
+              <text x="1027" y="120" font-size="10" fill="#701a75" text-anchor="middle">changed by deadline</text>
+
+              <!-- Time label -->
+              <rect x="1140" y="60" width="145" height="70" rx="10" fill="#1d2a3f"/>
+              <text x="1212" y="90" font-size="13" font-weight="700" fill="#fca5a5" text-anchor="middle" font-family="Space Grotesk">2–5 Days</text>
+              <text x="1212" y="108" font-size="11" fill="#d9e4f6" text-anchor="middle">for one analysis</text>
+              <text x="1212" y="122" font-size="10" fill="#94a3b8" text-anchor="middle">cycle</text>
+            </svg>
+          </div>
+
+          <div class="grid-3" style="margin-top:12px;">
+            <div class="card reveal">
+              <h3 style="color:var(--danger);font-size:14px;">Data fragmentation</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--danger)">!</div><div><b>Six or more portals</b><p>World Bank DataBank, ACLED Explorer, UNSD SDG, UIS.UNESCO, UN Data, FAO — all separate log-ins and download formats.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--danger)">!</div><div><b>Stale snapshots</b><p>CSV downloaded today may be outdated by Friday's brief. No auto-refresh mechanism.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:#d97706;font-size:14px;">Manual wrangling</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:#d97706">!</div><div><b>Country code mismatches</b><p>ISO 2, ISO 3, M49, custom codes — merging requires expertise and still produces errors.</p></div></div>
+                <div class="row"><div class="icon" style="background:#d97706">!</div><div><b>Repeated effort</b><p>Each policy question restarts the download-join-clean cycle. No reusable workflow.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r3">
+              <h3 style="color:var(--violet);font-size:14px;">Copilot gap</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--violet)">C</div><div><b>Copilot still needs your data</b><p>GitHub Copilot, ChatGPT data analysis require you to upload files first — after all the manual steps above.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--violet)">!</div><div><b>Hallucination risk</b><p>LLMs answering from memory produce plausible but unverified statistics — dangerous for UN publications.</p></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 03: THE SOLUTION WORKFLOW -->
+        <section class="slide" data-title="03 | The New Workflow">
+          <div class="kicker">The SMU Data App Solution</div>
+          <h2>From question to tested evidence in under 5 minutes</h2>
+          <p class="sub">One natural-language query triggers live API retrieval, automatic joins, diagnostic checks, and explainable outputs — all in a single session.</p>
+
+          <div style="margin-top:14px;">
+            <svg viewBox="0 0 1280 230" style="width:100%;height:200px;">
+              <defs>
+                <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 z" fill="#009edb"/>
+                </marker>
+                <linearGradient id="flowGrad" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#0f4c9a"/>
+                  <stop offset="100%" stop-color="#0f766e"/>
+                </linearGradient>
+              </defs>
+
+              <!-- User -->
+              <rect x="10" y="70" width="140" height="80" rx="12" fill="#edf5ff" stroke="#93c5fd"/>
+              <text x="80" y="105" font-size="22" text-anchor="middle">🧑‍💼</text>
+              <text x="80" y="124" font-size="12" font-weight="600" fill="#1e40af" text-anchor="middle" font-family="Space Grotesk">UN Analyst</text>
+              <text x="80" y="140" font-size="10" fill="#3b82f6" text-anchor="middle">Types hypothesis</text>
+
+              <line x1="150" y1="110" x2="185" y2="110" stroke="#009edb" stroke-width="2.5" marker-end="url(#arr2)"/>
+
+              <!-- AI Planner -->
+              <rect x="185" y="55" width="185" height="110" rx="12" fill="#f0ebff" stroke="#c4b5fd"/>
+              <text x="277" y="88" font-size="12" font-weight="700" fill="#4c1d95" text-anchor="middle" font-family="Space Grotesk">AI Query Planner</text>
+              <text x="277" y="106" font-size="10" fill="#6d28d9" text-anchor="middle">→ Maps to indicators</text>
+              <text x="277" y="120" font-size="10" fill="#6d28d9" text-anchor="middle">→ Selects country scope</text>
+              <text x="277" y="134" font-size="10" fill="#6d28d9" text-anchor="middle">→ Sets date window</text>
+              <text x="277" y="148" font-size="10" fill="#6d28d9" text-anchor="middle">→ Routes to APIs</text>
+
+              <line x1="370" y1="110" x2="405" y2="110" stroke="#009edb" stroke-width="2.5" marker-end="url(#arr2)"/>
+
+              <!-- APIs block -->
+              <rect x="405" y="40" width="235" height="140" rx="12" fill="#ecfdf5" stroke="#6ee7b7"/>
+              <text x="522" y="68" font-size="12" font-weight="700" fill="#065f46" text-anchor="middle" font-family="Space Grotesk">Live API Retrieval</text>
+              <text x="522" y="86" font-size="10" fill="#047857" text-anchor="middle">🌐 World Bank API</text>
+              <text x="522" y="101" font-size="10" fill="#047857" text-anchor="middle">⚔️ ACLED Conflict API</text>
+              <text x="522" y="116" font-size="10" fill="#047857" text-anchor="middle">🎯 UN SDG API</text>
+              <text x="522" y="131" font-size="10" fill="#047857" text-anchor="middle">🎓 UNESCO UIS API</text>
+              <text x="522" y="146" font-size="10" fill="#047857" text-anchor="middle">⚡ UN Energy Stats API</text>
+              <text x="522" y="161" font-size="10" fill="#065f46" text-anchor="middle" font-style="italic">Cache-first, live fallback</text>
+
+              <line x1="640" y1="110" x2="675" y2="110" stroke="#009edb" stroke-width="2.5" marker-end="url(#arr2)"/>
+
+              <!-- DuckDB -->
+              <rect x="675" y="70" width="150" height="80" rx="12" fill="#f1f5f9" stroke="#94a3b8"/>
+              <text x="750" y="105" font-size="20" text-anchor="middle">🦆</text>
+              <text x="750" y="123" font-size="12" font-weight="600" fill="#334155" text-anchor="middle" font-family="Space Grotesk">DuckDB Cache</text>
+              <text x="750" y="139" font-size="10" fill="#64748b" text-anchor="middle">Local fast storage</text>
+
+              <line x1="825" y1="110" x2="860" y2="110" stroke="#009edb" stroke-width="2.5" marker-end="url(#arr2)"/>
+
+              <!-- Analysis -->
+              <rect x="860" y="55" width="185" height="110" rx="12" fill="#fff7ed" stroke="#fcd34d"/>
+              <text x="952" y="88" font-size="12" font-weight="700" fill="#78350f" text-anchor="middle" font-family="Space Grotesk">AI Analysis</text>
+              <text x="952" y="106" font-size="10" fill="#92400e" text-anchor="middle">→ Trends + correlations</text>
+              <text x="952" y="120" font-size="10" fill="#92400e" text-anchor="middle">→ Lag effects</text>
+              <text x="952" y="134" font-size="10" fill="#92400e" text-anchor="middle">→ Data gap warnings</text>
+              <text x="952" y="148" font-size="10" fill="#92400e" text-anchor="middle">→ Proxy suggestions</text>
+
+              <line x1="1045" y1="110" x2="1080" y2="110" stroke="#009edb" stroke-width="2.5" marker-end="url(#arr2)"/>
+
+              <!-- Output -->
+              <rect x="1080" y="55" width="185" height="110" rx="12" fill="#edf5ff" stroke="#60a5fa"/>
+              <text x="1172" y="88" font-size="12" font-weight="700" fill="#1e3a8a" text-anchor="middle" font-family="Space Grotesk">Policy Output</text>
+              <text x="1172" y="106" font-size="10" fill="#1d4ed8" text-anchor="middle">→ Interactive charts</text>
+              <text x="1172" y="120" font-size="10" fill="#1d4ed8" text-anchor="middle">→ Downloadable data</text>
+              <text x="1172" y="134" font-size="10" fill="#1d4ed8" text-anchor="middle">→ Source citations</text>
+              <text x="1172" y="148" font-size="10" fill="#1d4ed8" text-anchor="middle">→ Narrative summary</text>
+
+              <!-- Time label -->
+              <text x="640" y="210" font-size="14" font-weight="700" fill="#0f766e" text-anchor="middle" font-family="Space Grotesk">⏱ Under 5 minutes — with authentic, real-time data</text>
+            </svg>
+          </div>
+
+          <div class="grid-3" style="margin-top:10px;">
+            <div class="card reveal">
+              <h3 style="color:var(--blue);font-size:14px;">Zero hallucination guarantee</h3>
+              <p style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.55;">AI only analyzes data pulled live from authoritative APIs. It cannot invent statistics — every figure is fetched, not generated. The LLM interprets; the data speaks for itself.</p>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:var(--violet);font-size:14px;">No spreadsheet uploads needed</h3>
+              <p style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.55;">Unlike Copilot or ChatGPT, there is no "upload your CSV first" step. The app handles retrieval, joining, and normalization automatically via API.</p>
+            </div>
+            <div class="card reveal r3">
+              <h3 style="color:var(--green);font-size:14px;">Iterate, revise, retest instantly</h3>
+              <p style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.55;">Add a country, change the date range, switch an indicator — the system re-runs the analysis. No redownloading, no re-joining. Hypothesis testing becomes conversational.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 04: SENSITIVE DATA + LOCAL LLM -->
+        <section class="slide" data-title="04 | Sensitive Data & Local LLM">
+          <div class="kicker">Privacy and Data Sovereignty</div>
+          <h2>Working with sensitive information safely</h2>
+          <p class="sub">Some UN analyses involve confidential operational data, pre-publication figures, or politically sensitive indicators. The local LLM mode ensures nothing leaves your machine.</p>
+
+          <div class="grid-2" style="margin-top:14px;">
+            <div class="card reveal">
+              <h3 style="color:var(--ink-2);font-size:15px;">The two modes explained</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row">
+                  <div class="icon" style="background:var(--blue)">☁</div>
+                  <div><b>Cloud LLM (Azure OpenAI)</b><p>Best for: public indicator analysis, standard policy briefs, cross-country SDG work. Uses Azure Government-compliant endpoints. Models: GPT-4o, GPT-5, GPT-4.1.</p></div>
+                </div>
+                <div class="row">
+                  <div class="icon" style="background:var(--green)">🖥</div>
+                  <div><b>Local LLM (Ollama — free)</b><p>Best for: mission-critical, pre-publication, or politically sensitive data. Model runs entirely on your laptop or UN server. Zero external API calls. Zero cost.</p></div>
+                </div>
+                <div class="row">
+                  <div class="icon" style="background:var(--violet)">⚡</div>
+                  <div><b>Hybrid (default recommended)</b><p>Ollama for routine query planning; cloud for high-stakes reasoning steps. Reduces cost by ~60% while maintaining quality.</p></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div class="card reveal r2" style="background:linear-gradient(135deg,#0f2a1a,#0a1f14);border-color:#1a4a2a;color:white;">
+                <h3 style="font-size:14px;color:#86efac;">Local mode: data never leaves your machine</h3>
+                <div class="code-block" style="margin-top:8px;font-size:10px;">
+# In app settings — switch LLM provider:
+LLM Provider:  [Ollama (Local) ▾]
+Model:         llama3.1:8b  |  qwen2.5:14b
+
+# What stays local:
+✓ Your query text
+✓ Retrieved API data
+✓ Analysis conversation
+✓ Generated charts
+
+# What leaves your machine:
+✗ Nothing — 100% offline inference</div>
+              </div>
+
+              <div class="card reveal r3">
+                <h3 style="color:var(--blue);font-size:14px;">UN data governance alignment</h3>
+                <div class="list" style="margin-top:8px;">
+                  <div class="row"><div class="icon" style="background:var(--accent)">✓</div><div><b>DPPA mission planning data</b><p>Pre-decisional conflict analysis can run on local Ollama without ICT policy concerns.</p></div></div>
+                  <div class="row"><div class="icon" style="background:var(--accent)">✓</div><div><b>OCHA humanitarian figures</b><p>Pre-release IDP/refugee estimates analyzed without cloud transmission.</p></div></div>
+                  <div class="row"><div class="icon" style="background:var(--accent)">✓</div><div><b>DESA embargoed statistics</b><p>Draft World Economic Situation and Prospects data handled locally.</p></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 05: DATA SOURCES -->
+        <section class="slide" data-title="05 | Data Sources & Coverage">
+          <div class="kicker">Live API Ecosystem</div>
+          <h2>Six authoritative data sources — directly connected</h2>
+          <p class="sub">All data is fetched live from official APIs. No intermediary downloads, no version drift, no manual refresh. Cached locally for performance, updated on demand.</p>
+
+          <div class="grid-3" style="margin-top:14px;">
+            <div class="card reveal">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:grid;place-items:center;color:white;font-size:16px;">🌐</div>
+                <div><b style="font-size:14px;color:var(--ink-2);">World Bank API</b><br><span style="font-size:11px;color:var(--muted);">wb.osaa.analytics</span></div>
+              </div>
+              <p style="font-size:12px;color:var(--muted);line-height:1.5;">800+ indicators: GDP, inflation, poverty, education, health, governance. Country-year panels for 200+ countries. Used by DESA, OSAA, UNDP for macroeconomic and development analysis.</p>
+              <div class="badge-row">
+                <span class="badge">GDP growth</span><span class="badge">Poverty headcount</span><span class="badge">Literacy</span><span class="badge">Health spending</span>
+              </div>
+            </div>
+
+            <div class="card reveal r2">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#991b1b,#ef4444);display:grid;place-items:center;color:white;font-size:16px;">⚔️</div>
+                <div><b style="font-size:14px;color:var(--ink-2);">ACLED Conflict API</b><br><span style="font-size:11px;color:var(--muted);">Armed Conflict Location & Event</span></div>
+              </div>
+              <p style="font-size:12px;color:var(--muted);line-height:1.5;">Sub-national conflict events, fatalities, actor types from 1997. Critical for DPPA/DPO mission planning, OCHA situation analysis, and OSAA Africa conflict-development studies.</p>
+              <div class="badge-row">
+                <span class="badge">Events by type</span><span class="badge">Fatalities</span><span class="badge">Actor mapping</span><span class="badge">Sub-national</span>
+              </div>
+            </div>
+
+            <div class="card reveal r3">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#065f46,#10b981);display:grid;place-items:center;color:white;font-size:16px;">🎯</div>
+                <div><b style="font-size:14px;color:var(--ink-2);">UN SDG API</b><br><span style="font-size:11px;color:var(--muted);">UNSD Global SDG Database</span></div>
+              </div>
+              <p style="font-size:12px;color:var(--muted);line-height:1.5;">658 SDG indicators across 17 goals. Core tool for Agenda 2030 progress monitoring, HLPF reporting, country review preparation, and DESA's SDG progress assessments.</p>
+              <div class="badge-row">
+                <span class="badge">All 17 Goals</span><span class="badge">Country/regional</span><span class="badge">Time series</span>
+              </div>
+            </div>
+
+            <div class="card reveal r4">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c2d12,#f97316);display:grid;place-items:center;color:white;font-size:16px;">🎓</div>
+                <div><b style="font-size:14px;color:var(--ink-2);">UNESCO UIS API</b><br><span style="font-size:11px;color:var(--muted);">Education & Literacy Statistics</span></div>
+              </div>
+              <p style="font-size:12px;color:var(--muted);line-height:1.55;">333 education indicators: enrolment ratios, completion rates, teacher training, literacy by age/sex. SDMX endpoint with ISO-3 country codes for Africa-specific analysis.</p>
+              <div class="badge-row">
+                <span class="badge">Enrolment rates</span><span class="badge">Literacy</span><span class="badge">Gender parity</span>
+              </div>
+            </div>
+
+            <div class="card reveal r5">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1e3a5f,#0ea5e9);display:grid;place-items:center;color:white;font-size:16px;">⚡</div>
+                <div><b style="font-size:14px;color:var(--ink-2);">UN Energy Stats API</b><br><span style="font-size:11px;color:var(--muted);">UN Energy Statistics Database</span></div>
+              </div>
+              <p style="font-size:12px;color:var(--muted);line-height:1.55;">Two dataflows: Energy Stats (75 commodities × 216 transactions) and Energy Balance (11 groups × 53 transactions). Supports SDG 7 analysis and energy transition tracking.</p>
+              <div class="badge-row">
+                <span class="badge">Electricity access</span><span class="badge">Renewables</span><span class="badge">Energy balance</span>
+              </div>
+            </div>
+
+            <div class="card reveal r5" style="background:linear-gradient(135deg,#0f1b2f,#1a2f50);border-color:#2a4a7a;color:white;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;font-size:16px;">📤</div>
+                <div><b style="font-size:14px;color:#e8efff;">Custom Data Upload</b><br><span style="font-size:11px;color:#93c5fd;">Your own datasets</span></div>
+              </div>
+              <p style="font-size:12px;color:#94a3b8;line-height:1.55;">Upload any CSV or spreadsheet — mission reports, survey data, internal assessments — and immediately chat with it, generate visualizations, and run hypothesis tests.</p>
+              <div class="badge-row">
+                <span class="badge" style="background:#1a3a5f;border-color:#3b5f8a;color:#93c5fd;">CSV / Excel</span>
+                <span class="badge" style="background:#1a3a5f;border-color:#3b5f8a;color:#93c5fd;">AI chat enabled</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 06: TECH ARCHITECTURE -->
+        <section class="slide" data-title="06 | How It's Built">
+          <div class="kicker">Technical Architecture</div>
+          <h2>Python · Streamlit · DuckDB · Multi-LLM</h2>
+          <p class="sub">Built for reliability, auditability, and cost-efficiency. Every layer is designed to be swappable — switch LLMs, add data sources, or deploy locally or on Azure.</p>
+
+          <div class="grid-2" style="margin-top:14px;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <!-- Architecture layers -->
+              <div class="card reveal" style="padding:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:#edf5ff;border:1px solid #93c5fd;display:grid;place-items:center;font-size:14px;">🖥</div>
+                  <div><b style="font-size:13px;color:var(--ink-2);">Streamlit UI Layer</b><p style="font-size:11px;color:var(--muted);">Rapid interactive interface — pages, widgets, charts, export buttons. No front-end framework needed.</p></div>
+                </div>
+              </div>
+              <div class="card reveal r2" style="padding:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:#fff4eb;border:1px solid #fdba74;display:grid;place-items:center;font-size:14px;">🐍</div>
+                  <div><b style="font-size:13px;color:var(--ink-2);">Python Services Layer</b><p style="font-size:11px;color:var(--muted);">Query planner, API connectors, join engine, diagnostics, sync scheduler. Clean separation from UI.</p></div>
+                </div>
+              </div>
+              <div class="card reveal r2" style="padding:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:#f0ebff;border:1px solid #c4b5fd;display:grid;place-items:center;font-size:14px;">🤖</div>
+                  <div><b style="font-size:13px;color:var(--ink-2);">Multi-LLM Layer</b><p style="font-size:11px;color:var(--muted);">Azure OpenAI (GPT-4o/GPT-5), local Ollama (Llama, Qwen). LangChain for conversation history and message routing.</p></div>
+                </div>
+              </div>
+              <div class="card reveal r3" style="padding:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:#ecfdf5;border:1px solid #6ee7b7;display:grid;place-items:center;font-size:14px;">🦆</div>
+                  <div><b style="font-size:13px;color:var(--ink-2);">DuckDB Storage Layer</b><p style="font-size:11px;color:var(--muted);">Local analytics-grade cache, metadata registry, refresh logs, vector embeddings. No server required.</p></div>
+                </div>
+              </div>
+              <div class="card reveal r3" style="padding:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:#fff7ed;border:1px solid #fcd34d;display:grid;place-items:center;font-size:14px;">🌐</div>
+                  <div><b style="font-size:13px;color:var(--ink-2);">API Connector Layer</b><p style="font-size:11px;color:var(--muted);">Modular adapters for each data source: World Bank, ACLED, SDG, UIS, UN Energy. Cache-first with live fallback.</p></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div class="card reveal r2">
+                <h3 style="color:var(--ink-2);font-size:14px;">Tech stack at a glance</h3>
+                <div class="code-block" style="margin-top:8px;font-size:10px;">Language:    Python 3.10+
+UI:          Streamlit (rapid analytics UI)
+Database:    DuckDB (local OLAP, cache, vectors)
+AI Layer:    LangChain + multi-provider factory
+  Cloud:     Azure OpenAI (GPT-4o, GPT-5)
+  Local:     Ollama (Llama 3.1, Qwen 2.5, etc.)
+APIs:        World Bank · ACLED · UN SDG
+             UNESCO UIS · UN Energy
+Deploy:      Docker → Azure App Service
+             (or: git clone + streamlit run)
+Auth:        Streamlit secrets + .env fallback
+CI/CD:       GitHub Actions → Azure</div>
+              </div>
+
+              <div class="card reveal r3">
+                <h3 style="color:var(--blue);font-size:14px;">LLM models available</h3>
+                <table class="compare-table" style="margin-top:8px;">
+                  <thead><tr><th>Model</th><th>Provider</th><th>Best for</th></tr></thead>
+                  <tbody>
+                    <tr><td>GPT-5 / GPT-4o</td><td>Azure OpenAI</td><td>Complex reasoning, briefs</td></tr>
+                    <tr><td>GPT-4.1-mini</td><td>Azure OpenAI</td><td>Fast queries, cost control</td></tr>
+                    <tr><td>Llama 4 Maverick</td><td>Azure (local-feel)</td><td>Open-source transparency</td></tr>
+                    <tr><td>Llama 3.1:8b</td><td>Ollama (local)</td><td>Sensitive data, offline</td></tr>
+                    <tr><td>Qwen 2.5:14b</td><td>Ollama (local)</td><td>Sensitive data, multilingual</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 07: MODULE OVERVIEW -->
+        <section class="slide" data-title="07 | Application Modules">
+          <div class="kicker">Capability Map</div>
+          <h2>Ten modules aligned to UN analytical tasks</h2>
+          <p class="sub">Each module is a focused capability. Together they cover the full UN policy analysis lifecycle — from raw data retrieval to institutional quality checks.</p>
+
+          <div class="module-grid" style="margin-top:14px;">
+            <div class="module-card data reveal">
+              <h4>🌐 World Bank Dashboard</h4>
+              <p>Browse 800+ WB indicators for any country or African region. Trend charts, cross-country comparison, downloadable panel data.</p>
+              <div class="tag">Core Data · WB API</div>
+            </div>
+            <div class="module-card data reveal r2">
+              <h4>⚔️ ACLED Conflict Dashboard</h4>
+              <p>Interactive conflict event explorer: by type, actor, region, time. Filter by peacekeeping mission area. Export for situation reports.</p>
+              <div class="tag">Core Data · ACLED API</div>
+            </div>
+            <div class="module-card data reveal r3">
+              <h4>🎯 SDG Indicators Dashboard</h4>
+              <p>Agenda 2030 progress tracker. Multi-country comparison, goal-by-goal breakdown, off-track identification for HLPF reporting.</p>
+              <div class="tag">Core Data · UN SDG API</div>
+            </div>
+            <div class="module-card data reveal r4">
+              <h4>🎓 UNESCO Education Explorer</h4>
+              <p>333 UIS indicators: enrolment, literacy, completion rates. Disaggregated by sex and level. Sub-Saharan Africa focus.</p>
+              <div class="tag">Core Data · UNESCO UIS API</div>
+            </div>
+            <div class="module-card data reveal r5">
+              <h4>⚡ UN Energy Statistics</h4>
+              <p>Energy stats and balance by commodity and transaction. SDG 7 (clean energy) monitoring and energy transition tracking.</p>
+              <div class="tag">Core Data · UN Energy API</div>
+            </div>
+            <div class="module-card ai reveal r2">
+              <h4>🔗 Cross-Source Studio</h4>
+              <p>Natural-language cross-source joins. Type a hypothesis → the app fetches ACLED + WB + SDG, runs correlation/lag analysis, and surfaces caveats.</p>
+              <div class="tag">AI · Multi-API · Hypothesis Engine</div>
+            </div>
+            <div class="module-card ai reveal r3">
+              <h4>🔄 Hybrid Sync Manager</h4>
+              <p>Metadata refresh + missing-only data sync. View update logs by source, indicator, and status. Keeps local cache current without re-fetching all data.</p>
+              <div class="tag">AI · Data Ops · Cache Management</div>
+            </div>
+            <div class="module-card ai reveal r4">
+              <h4>📂 Custom Data Explorer</h4>
+              <p>Upload any CSV/Excel and immediately chat with it. Generate charts from prompts, run correlations, export analysis — no coding needed.</p>
+              <div class="tag">AI · Custom Upload · Analysis</div>
+            </div>
+            <div class="module-card gov reveal r3">
+              <h4>⚖️ Analysis Checker</h4>
+              <p>Detects contradictions between policy documents and data-backed findings. Reduces inconsistency risk in publications and briefing notes.</p>
+              <div class="tag">Governance · Quality Assurance</div>
+            </div>
+            <div class="module-card gov reveal r4">
+              <h4>📚 Chat Library</h4>
+              <p>Persists all AI analysis conversations to a searchable library. Re-use previous analyses, build on colleague work, maintain institutional memory.</p>
+              <div class="tag">Governance · Knowledge Management</div>
+            </div>
+            <div class="module-card gov reveal r5">
+              <h4>📋 PID Checker</h4>
+              <p>Programme integrity and consistency checker for policy documents. Flags statistical claims that may need data verification.</p>
+              <div class="tag">Governance · Document QA</div>
+            </div>
+            <div class="module-card ai reveal r5" style="background:linear-gradient(135deg,#0f2a1a,#1a3a2a);border-color:#2a5a3a;color:white;">
+              <h4 style="color:#86efac;">🤖 OSAA Chatbot</h4>
+              <p style="color:#94a3b8;">Conversational interface with full context of OSAA mandate and African development data. Ask broad questions; get evidence-grounded answers.</p>
+              <div class="tag" style="color:#34d399;">AI · Conversational · RAG</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 08: USE CASE — OSAA -->
+        <section class="slide" data-title="08 | Use Case: OSAA Africa Analysis">
+          <div class="kicker">Use Case — UN OSAA</div>
+          <h2>Africa SDG progress review for Member State briefing</h2>
+          <p class="sub">OSAA prepares evidence packages for the Secretary-General's reports on Africa. This use case shows how a 3-day manual process becomes a 10-minute workflow.</p>
+
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="card reveal">
+              <h3 style="color:var(--blue);font-size:14px;">The analytical question</h3>
+              <div class="code-block" style="margin-top:8px;">"For Sub-Saharan African countries, compare progress on SDG 1.1.1 (extreme poverty), SDG 3.2.1 (under-5 mortality), and SDG 4.1.1 (reading proficiency) from 2015 to latest year. Identify which countries are off-track and cross-reference with their conflict exposure from ACLED."</div>
+              <div class="list" style="margin-top:10px;">
+                <div class="row"><div class="icon">1</div><div><b>Sources pulled live</b><p>UN SDG API (three indicator series) + ACLED API (conflict event totals by country-year) — automatically joined by ISO code and year.</p></div></div>
+                <div class="row"><div class="icon">2</div><div><b>Analysis performed</b><p>SDG trajectory classification (on-track / at-risk / off-track) + conflict-development correlation for each country.</p></div></div>
+                <div class="row"><div class="icon">3</div><div><b>Outputs generated</b><p>Ranked country table, multi-panel trend chart, narrative paragraph with source citations — ready for the Secretary-General's Africa Report annex.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:var(--accent);font-size:14px;">Cross-source workflow diagram</h3>
+              <svg viewBox="0 0 520 290" style="width:100%;margin-top:8px;">
+                <defs><marker id="a3" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#009edb"/></marker></defs>
+
+                <!-- Prompt -->
+                <rect x="10" y="10" width="160" height="50" rx="10" fill="#edf5ff" stroke="#93c5fd"/>
+                <text x="90" y="32" font-size="11" font-weight="700" fill="#1e40af" text-anchor="middle">OSAA Analyst Prompt</text>
+                <text x="90" y="48" font-size="10" fill="#3b82f6" text-anchor="middle">"SDG + conflict for SSA"</text>
+
+                <line x1="170" y1="35" x2="200" y2="35" stroke="#009edb" stroke-width="2" marker-end="url(#a3)"/>
+
+                <!-- Planner -->
+                <rect x="200" y="10" width="140" height="50" rx="10" fill="#f0ebff" stroke="#c4b5fd"/>
+                <text x="270" y="32" font-size="11" font-weight="700" fill="#4c1d95" text-anchor="middle">AI Query Planner</text>
+                <text x="270" y="48" font-size="10" fill="#6d28d9" text-anchor="middle">Maps to SDG + ACLED</text>
+
+                <!-- Arrow down to APIs -->
+                <line x1="270" y1="60" x2="270" y2="90" stroke="#009edb" stroke-width="2" marker-end="url(#a3)"/>
+
+                <!-- SDG API -->
+                <rect x="100" y="90" width="140" height="50" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+                <text x="170" y="112" font-size="11" font-weight="700" fill="#065f46" text-anchor="middle">UN SDG API</text>
+                <text x="170" y="128" font-size="10" fill="#047857" text-anchor="middle">SDG 1.1.1 · 3.2.1 · 4.1.1</text>
+
+                <!-- ACLED API -->
+                <rect x="270" y="90" width="140" height="50" rx="10" fill="#fff0f0" stroke="#fca5a5"/>
+                <text x="340" y="112" font-size="11" font-weight="700" fill="#991b1b" text-anchor="middle">ACLED API</text>
+                <text x="340" y="128" font-size="10" fill="#dc2626" text-anchor="middle">Conflict events by country</text>
+
+                <!-- Arrow down to join -->
+                <line x1="170" y1="140" x2="200" y2="170" stroke="#009edb" stroke-width="2" marker-end="url(#a3)"/>
+                <line x1="340" y1="140" x2="310" y2="170" stroke="#009edb" stroke-width="2" marker-end="url(#a3)"/>
+
+                <!-- Join engine -->
+                <rect x="140" y="170" width="175" height="50" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+                <text x="227" y="192" font-size="11" font-weight="700" fill="#334155" text-anchor="middle">Auto-Join Engine</text>
+                <text x="227" y="208" font-size="10" fill="#64748b" text-anchor="middle">ISO-3 country · Year key</text>
+
+                <line x1="315" y1="195" x2="360" y2="195" stroke="#009edb" stroke-width="2" marker-end="url(#a3)"/>
+
+                <!-- Analysis -->
+                <rect x="360" y="170" width="145" height="50" rx="10" fill="#fff7ed" stroke="#fcd34d"/>
+                <text x="432" y="192" font-size="11" font-weight="700" fill="#78350f" text-anchor="middle">AI Analysis</text>
+                <text x="432" y="208" font-size="10" fill="#92400e" text-anchor="middle">SDG status + conflict link</text>
+
+                <!-- Arrow down to output -->
+                <line x1="432" y1="220" x2="432" y2="250" stroke="#009edb" stroke-width="2" marker-end="url(#a3)"/>
+                <line x1="227" y1="220" x2="227" y2="250" stroke="#009edb" stroke-width="2" marker-end="url(#a3)"/>
+
+                <!-- Output -->
+                <rect x="90" y="250" width="400" height="35" rx="10" fill="#0f1b2f"/>
+                <text x="290" y="272" font-size="11" font-weight="700" fill="#86efac" text-anchor="middle">Policy brief annex + chart + source citations (≈ 8 min)</text>
+              </svg>
+
+              <div class="pill-row" style="margin-top:8px;">
+                <span class="pill">Agenda 2030 reporting</span>
+                <span class="pill">Conflict-development nexus</span>
+                <span class="pill">SG Africa Report</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 09: USE CASE — PEACEKEEPING -->
+        <section class="slide" data-title="09 | Use Case: Peacekeeping (DPPA/DPO)">
+          <div class="kicker">Use Case — DPPA / DPO Peacekeeping</div>
+          <h2>Conflict trend analysis for mission planning</h2>
+          <p class="sub">DPPA analysts and mission planning staff at DPO need rapid, reliable conflict and development assessments. ACLED data combined with humanitarian and economic indicators drives evidence-based mandate reviews.</p>
+
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="card reveal">
+              <h3 style="color:var(--danger);font-size:14px;">Scenario: UNMISS (South Sudan)</h3>
+              <div class="code-block" style="margin-top:8px;">"For South Sudan, show monthly ACLED conflict events by type (battles, violence against civilians, protests) from 2018–2024. Cross-reference with GDP per capita, food insecurity proxy (WB), and SDG 16.1.1 (conflict-related deaths). Identify escalation periods and test whether economic deterioration precedes conflict spikes by 1–2 years."</div>
+              <div class="list" style="margin-top:10px;">
+                <div class="row"><div class="icon" style="background:var(--danger)">1</div><div><b>ACLED API retrieval</b><p>Real-time event data — battles, VAC, explosions. No ACLED account or export needed.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--danger)">2</div><div><b>Lag analysis</b><p>Tests 1–2 year economic-to-conflict lead effect automatically. Robustness checks included.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--danger)">3</div><div><b>Sensitive mode</b><p>Run on local Ollama — operational analysis stays on mission planning machines, no cloud transmission.</p></div></div>
+              </div>
+            </div>
+
+            <div class="card reveal r2">
+              <h3 style="color:var(--violet);font-size:14px;">Scenario: MONUSCO (DRC)</h3>
+              <div class="code-block" style="margin-top:8px;">"Compare conflict intensity (ACLED events + fatalities) in DRC's Kivu provinces vs. national SDG progress on SDG 1, 3, 16 from 2015–2024. Show whether areas with high conflict show systematically lower development scores."</div>
+              <div class="list" style="margin-top:10px;">
+                <div class="row"><div class="icon" style="background:var(--violet)">A</div><div><b>Multi-indicator join</b><p>ACLED sub-national + national WB/SDG data, auto-aligned by year key.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--violet)">B</div><div><b>Conflict-development nexus</b><p>Quantified relationship — correlation, trend break, and data-gap warnings surfaced automatically.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--violet)">C</div><div><b>Mission brief ready</b><p>Chart + narrative + source list exported in one click for the DPPA Strategic Cell.</p></div></div>
+              </div>
+              <div class="pill-row" style="margin-top:8px;">
+                <span class="pill">MINUSMA (Mali)</span>
+                <span class="pill">UNOCI (Côte d'Ivoire)</span>
+                <span class="pill">MINUSCA (CAR)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal r3" style="margin-top:12px;background:linear-gradient(135deg,#0f1b2f,#1a2a45);color:white;border-color:#2a4060;">
+            <h3 style="color:#fca5a5;font-size:14px;">Why the local LLM option matters for peacekeeping</h3>
+            <p style="margin-top:8px;color:#d8e4f6;font-size:13px;line-height:1.6;">Mission planning data — troop disposition concepts, pre-decisional conflict forecasts, early warning assessments — falls under ICT security classifications that prohibit cloud LLM transmission. The Ollama local mode resolves this: full AI analysis capability with zero external data exposure.</p>
+          </div>
+        </section>
+
+        <!-- SLIDE 10: USE CASE — UN DESA -->
+        <section class="slide" data-title="10 | Use Case: UN DESA Economics">
+          <div class="kicker">Use Case — UN DESA</div>
+          <h2>Macroeconomic and development monitoring</h2>
+          <p class="sub">UN DESA economists track global and regional development trends for flagship reports (WESP, World Social Report, SDG Progress Report). This app accelerates indicator retrieval and comparative analysis.</p>
+
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="card reveal">
+              <h3 style="color:var(--blue);font-size:14px;">WESP regional analysis workflow</h3>
+              <div class="code-block" style="margin-top:8px;">"For Least Developed Countries in Africa, compare GDP growth, inflation, external debt (% GNI), and merchandise exports from 2019–2024. Identify countries that have not recovered to pre-COVID growth trajectories. Cross-reference with SDG 17.4.1 (debt service ratio)."</div>
+              <div class="list" style="margin-top:10px;">
+                <div class="row"><div class="icon">W</div><div><b>World Bank macro indicators</b><p>GDP growth · CPI · Debt-to-GNI · Exports — fetched live, country-year panel auto-constructed.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--green)">S</div><div><b>SDG debt metrics</b><p>SDG 17.4.1 retrieved from UN SDG API and merged automatically on ISO and year.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">O</div><div><b>Comparative tables</b><p>Pre/post-COVID growth gap table, ranked by recovery lag — directly usable in WESP draft.</p></div></div>
+              </div>
+            </div>
+
+            <div class="card reveal r2">
+              <h3 style="color:var(--accent);font-size:14px;">SDG Progress Report support</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--accent)">G1</div><div><b>SDG 1 — End poverty</b><p>SDG 1.1.1 + WB poverty headcount + conflict exposure (ACLED). Multi-country Africa assessment.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--accent)">G4</div><div><b>SDG 4 — Quality education</b><p>UNESCO UIS enrolment + completion + literacy linked to economic indicators — 333 indicators available.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--accent)">G7</div><div><b>SDG 7 — Clean energy</b><p>UN Energy Stats API (electricity access, renewables share) + SDG 7 API — energy transition tracking.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--accent)">G17</div><div><b>SDG 17 — Partnerships</b><p>ODA, FDI, debt metrics from World Bank combined with SDG financing indicators.</p></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal r4" style="margin-top:12px;">
+            <h3 style="color:var(--ink-2);font-size:14px;">Before vs. After comparison</h3>
+            <table class="compare-table" style="margin-top:8px;">
+              <thead><tr><th>Task</th><th>Before (Manual)</th><th>With SMU App</th></tr></thead>
+              <tbody>
+                <tr><td>Retrieve 5 WB indicators for 20 LDCs</td><td class="cross">4–6 hours (DataBank downloads)</td><td class="check">~45 seconds (live API)</td></tr>
+                <tr><td>Join WB + SDG + conflict data</td><td class="cross">Half-day (Python or Excel)</td><td class="check">Automatic (ISO + year keys)</td></tr>
+                <tr><td>Identify off-track SDG countries</td><td class="cross">Manual filtering + charts</td><td class="check">AI classification + table</td></tr>
+                <tr><td>Generate draft narrative</td><td class="partial">Copilot (after uploading data)</td><td class="check">AI from live data, in-session</td></tr>
+                <tr><td>Sensitive data LLM analysis</td><td class="cross">Not possible (cloud LLMs)</td><td class="check">Local Ollama (zero exposure)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SLIDE 11: USE CASE — CROSS-SOURCE HYPOTHESIS -->
+        <section class="slide" data-title="11 | Use Case: Hypothesis Testing">
+          <div class="kicker">Use Case — Cross-Source Studio</div>
+          <h2>Multi-source hypothesis testing: conflict ↔ development</h2>
+          <p class="sub">The Cross-Source Studio is the flagship capability. It answers questions that previously required a data team, a week, and Python expertise.</p>
+
+          <div class="card reveal" style="margin-top:12px;">
+            <svg viewBox="0 0 1280 240" style="width:100%;height:210px;">
+              <defs>
+                <marker id="a4" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5b4bdb"/></marker>
+                <marker id="a4g" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#0f766e"/></marker>
+              </defs>
+
+              <!-- Hypothesis input -->
+              <rect x="10" y="80" width="210" height="80" rx="12" fill="#f0ebff" stroke="#c4b5fd"/>
+              <text x="115" y="106" font-size="12" font-weight="700" fill="#4c1d95" text-anchor="middle" font-family="Space Grotesk">Hypothesis Input</text>
+              <text x="115" y="122" font-size="10" fill="#6d28d9" text-anchor="middle">"In conflict-affected African</text>
+              <text x="115" y="136" font-size="10" fill="#6d28d9" text-anchor="middle">countries, does GDP growth</text>
+              <text x="115" y="150" font-size="10" fill="#6d28d9" text-anchor="middle">lag conflict by 1–2 years?"</text>
+
+              <line x1="220" y1="120" x2="250" y2="120" stroke="#5b4bdb" stroke-width="2.5" marker-end="url(#a4)"/>
+
+              <!-- Planner -->
+              <rect x="250" y="70" width="170" height="100" rx="12" fill="#fff4eb" stroke="#fdba74"/>
+              <text x="335" y="98" font-size="12" font-weight="700" fill="#78350f" text-anchor="middle" font-family="Space Grotesk">AI Planner</text>
+              <text x="335" y="114" font-size="10" fill="#92400e" text-anchor="middle">→ NY indicator IDs</text>
+              <text x="335" y="128" font-size="10" fill="#92400e" text-anchor="middle">→ ACLED event codes</text>
+              <text x="335" y="142" font-size="10" fill="#92400e" text-anchor="middle">→ Scope: SSA countries</text>
+              <text x="335" y="156" font-size="10" fill="#92400e" text-anchor="middle">→ Years: 2005–2024</text>
+
+              <!-- Arrow to data fork -->
+              <line x1="420" y1="120" x2="450" y2="80" stroke="#5b4bdb" stroke-width="2.5" marker-end="url(#a4)"/>
+              <line x1="420" y1="120" x2="450" y2="160" stroke="#5b4bdb" stroke-width="2.5" marker-end="url(#a4)"/>
+
+              <!-- ACLED fetch -->
+              <rect x="450" y="45" width="155" height="70" rx="12" fill="#fff0f0" stroke="#fca5a5"/>
+              <text x="527" y="73" font-size="12" font-weight="700" fill="#991b1b" text-anchor="middle" font-family="Space Grotesk">ACLED API</text>
+              <text x="527" y="89" font-size="10" fill="#dc2626" text-anchor="middle">Conflict events · Fatalities</text>
+              <text x="527" y="103" font-size="10" fill="#dc2626" text-anchor="middle">2005–2024 by country-year</text>
+
+              <!-- WB fetch -->
+              <rect x="450" y="130" width="155" height="70" rx="12" fill="#ecfdf5" stroke="#6ee7b7"/>
+              <text x="527" y="158" font-size="12" font-weight="700" fill="#065f46" text-anchor="middle" font-family="Space Grotesk">World Bank API</text>
+              <text x="527" y="174" font-size="10" fill="#047857" text-anchor="middle">GDP growth · NY.GDP.MKTP.KD.ZG</text>
+              <text x="527" y="188" font-size="10" fill="#047857" text-anchor="middle">Electricity access · SE.ADT.LITR.ZS</text>
+
+              <!-- Arrow to join -->
+              <line x1="605" y1="80" x2="640" y2="115" stroke="#5b4bdb" stroke-width="2.5" marker-end="url(#a4)"/>
+              <line x1="605" y1="165" x2="640" y2="130" stroke="#5b4bdb" stroke-width="2.5" marker-end="url(#a4)"/>
+
+              <!-- Join + DuckDB -->
+              <rect x="640" y="80" width="160" height="80" rx="12" fill="#f1f5f9" stroke="#94a3b8"/>
+              <text x="720" y="107" font-size="12" font-weight="700" fill="#334155" text-anchor="middle" font-family="Space Grotesk">Auto-Join + Cache</text>
+              <text x="720" y="123" font-size="10" fill="#64748b" text-anchor="middle">DuckDB · ISO-3 + Year</text>
+              <text x="720" y="137" font-size="10" fill="#64748b" text-anchor="middle">Overlap check · Gap flags</text>
+
+              <line x1="800" y1="120" x2="835" y2="120" stroke="#0f766e" stroke-width="2.5" marker-end="url(#a4g)"/>
+
+              <!-- Diagnostics -->
+              <rect x="835" y="70" width="155" height="100" rx="12" fill="#ecfdf5" stroke="#34d399"/>
+              <text x="912" y="98" font-size="12" font-weight="700" fill="#065f46" text-anchor="middle" font-family="Space Grotesk">Diagnostics</text>
+              <text x="912" y="114" font-size="10" fill="#047857" text-anchor="middle">✓ Coverage: 38/54 SSA</text>
+              <text x="912" y="128" font-size="10" fill="#047857" text-anchor="middle">✓ Overlap: 2005–2022</text>
+              <text x="912" y="142" font-size="10" fill="#d97706" text-anchor="middle">⚠ 4 countries sparse</text>
+              <text x="912" y="156" font-size="10" fill="#047857" text-anchor="middle">→ Proxy suggestions</text>
+
+              <line x1="990" y1="120" x2="1025" y2="120" stroke="#0f766e" stroke-width="2.5" marker-end="url(#a4g)"/>
+
+              <!-- Output -->
+              <rect x="1025" y="60" width="240" height="120" rx="12" fill="#0f1b2f"/>
+              <text x="1145" y="90" font-size="12" font-weight="700" fill="#86efac" text-anchor="middle" font-family="Space Grotesk">Tested Output</text>
+              <text x="1145" y="108" font-size="10" fill="#d8e4f6" text-anchor="middle">r = −0.61 (conflict → GDP lag)</text>
+              <text x="1145" y="122" font-size="10" fill="#d8e4f6" text-anchor="middle">Significant at p &lt; 0.05</text>
+              <text x="1145" y="138" font-size="10" fill="#d8e4f6" text-anchor="middle">Strongest: CAR, Mali, DRC</text>
+              <text x="1145" y="154" font-size="10" fill="#fcd34d" text-anchor="middle">⚠ Caveat: 4 countries excluded</text>
+              <text x="1145" y="170" font-size="10" fill="#94a3b8" text-anchor="middle">Sources: ACLED, WB API (2024)</text>
+            </svg>
+          </div>
+
+          <div class="grid-3" style="margin-top:10px;">
+            <div class="card reveal r2">
+              <h3 style="color:var(--blue);font-size:13px;">Iterate instantly</h3>
+              <p style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.5;">"Now test with electricity access instead of GDP" — re-runs in seconds. No re-downloading, no new join.</p>
+            </div>
+            <div class="card reveal r3">
+              <h3 style="color:var(--violet);font-size:13px;">Transparent caveats</h3>
+              <p style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.5;">Every output surfaces data gaps, sparse countries, and date range limitations. Safe for publication-grade analysis.</p>
+            </div>
+            <div class="card reveal r4">
+              <h3 style="color:var(--green);font-size:13px;">Export ready</h3>
+              <p style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.5;">Download the merged dataset, the chart (SVG/PNG), and a formatted source citation list in one action.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 12: COPILOT COMPARISON -->
+        <section class="slide" data-title="12 | vs. Copilot / ChatGPT">
+          <div class="kicker">Competitive Context</div>
+          <h2>Why existing AI tools still leave a gap</h2>
+          <p class="sub">GitHub Copilot, Microsoft 365 Copilot, and ChatGPT data analysis are powerful — but they all assume you've already done the hardest part: getting clean, joined, up-to-date data. This app closes that gap.</p>
+
+          <div class="card reveal" style="margin-top:14px;">
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>Capability</th>
+                  <th>GitHub Copilot / ChatGPT</th>
+                  <th>Microsoft 365 Copilot</th>
+                  <th>SMU Data App</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>Live API data retrieval</b></td>
+                  <td class="cross">✗ You must upload data</td>
+                  <td class="cross">✗ SharePoint/M365 files only</td>
+                  <td class="check">✓ WB · ACLED · SDG · UIS · Energy</td>
+                </tr>
+                <tr>
+                  <td><b>Auto country/year join</b></td>
+                  <td class="partial">⚠ Only if you provide joined CSV</td>
+                  <td class="cross">✗ Manual preparation required</td>
+                  <td class="check">✓ Automatic — ISO + year keys</td>
+                </tr>
+                <tr>
+                  <td><b>Zero hallucination guarantee</b></td>
+                  <td class="cross">✗ May generate plausible statistics</td>
+                  <td class="partial">⚠ Based on your documents only</td>
+                  <td class="check">✓ AI only interprets fetched data</td>
+                </tr>
+                <tr>
+                  <td><b>Sensitive data (local model)</b></td>
+                  <td class="cross">✗ Cloud-only</td>
+                  <td class="cross">✗ Microsoft cloud required</td>
+                  <td class="check">✓ Ollama — 100% offline mode</td>
+                </tr>
+                <tr>
+                  <td><b>UN-specific data sources</b></td>
+                  <td class="cross">✗ Generic (no UN APIs)</td>
+                  <td class="cross">✗ No built-in UN connectors</td>
+                  <td class="check">✓ SDG · UIS · Energy · ACLED</td>
+                </tr>
+                <tr>
+                  <td><b>Hypothesis testing with diagnostics</b></td>
+                  <td class="partial">⚠ Code-first, manual steps</td>
+                  <td class="cross">✗ Not designed for this</td>
+                  <td class="check">✓ Built-in lag, correlation, gap checks</td>
+                </tr>
+                <tr>
+                  <td><b>Source citation in output</b></td>
+                  <td class="partial">⚠ User must verify</td>
+                  <td class="partial">⚠ Document references only</td>
+                  <td class="check">✓ API source + series ID always listed</td>
+                </tr>
+                <tr>
+                  <td><b>Cost for 100 analyses/month</b></td>
+                  <td>$10–30 (API usage)</td>
+                  <td>$30+ (M365 Copilot license)</td>
+                  <td class="check">$0 (local Ollama) – $45 (hybrid)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card reveal r2" style="margin-top:12px;background:linear-gradient(135deg,#0f2a1a,#0a1f14);border-color:#1a4a2a;color:white;">
+            <p style="font-size:14px;color:#86efac;line-height:1.65;font-family:'Space Grotesk';">"Copilot is a great coding assistant. ChatGPT can analyze a spreadsheet you give it. But neither can answer: 'How does conflict intensity in the Sahel correlate with SDG 4 progress over the past decade?' — without you first spending a day collecting and cleaning the data. That's exactly what this app does."</p>
+          </div>
+        </section>
+
+        <!-- SLIDE 13: DEMONSTRATION SCRIPT -->
+        <section class="slide" data-title="13 | Live Demo Script">
+          <div class="kicker">Live Demonstration</div>
+          <h2>Suggested 12-minute walkthrough sequence</h2>
+          <p class="sub">Optimized for UN colleagues: start with the outcome (policy value), then show the mechanics, then demonstrate trust/governance features.</p>
+
+          <div class="grid-2" style="margin-top:14px;">
+            <div>
+              <div class="card reveal" style="margin-bottom:10px;">
+                <h3 style="color:var(--brand);font-size:14px;">Part A — Core value (0–5 min)</h3>
+                <div class="timeline" style="margin-top:8px;">
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">0:00</div>
+                    <div><h4>Open Cross-Source Studio</h4><p>Type: "For Mali, compare ACLED conflict events with WB GDP and SDG 4.1.1 from 2010–2024."</p></div>
+                  </div>
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">1:30</div>
+                    <div><h4>Show live fetch</h4><p>Point out the API sources being called in real time — no spreadsheet was uploaded.</p></div>
+                  </div>
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">2:30</div>
+                    <div><h4>Show diagnostic output</h4><p>Coverage stats, data gaps, proxy suggestions — built-in transparency.</p></div>
+                  </div>
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">3:30</div>
+                    <div><h4>Iterate hypothesis</h4><p>"Now add a 1-year conflict lag and re-test." Watch it re-run in &lt;60 seconds.</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card reveal r2" style="margin-bottom:10px;">
+                <h3 style="color:var(--blue);font-size:14px;">Part B — Modules + trust (5–10 min)</h3>
+                <div class="timeline" style="margin-top:8px;">
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">5:00</div>
+                    <div><h4>SDG Dashboard</h4><p>Show Agenda 2030 progress for SSA — off-track identification, goal comparison.</p></div>
+                  </div>
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">6:30</div>
+                    <div><h4>Hybrid Sync page</h4><p>Run metadata refresh. Show update log — which sources were updated when.</p></div>
+                  </div>
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">8:00</div>
+                    <div><h4>Switch to local LLM</h4><p>Change provider to Ollama. Run same query. Show it works offline — no cloud call.</p></div>
+                  </div>
+                  <div class="milestone" style="grid-template-columns:70px 1fr;">
+                    <div class="time">9:30</div>
+                    <div><h4>Export + citation</h4><p>Download merged CSV + chart + source citation list. Ready for brief annex.</p></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card reveal r3" style="background:linear-gradient(140deg,#0f1b2f,#142a4a);color:white;border-color:#28486f;">
+                <h3 style="font-size:14px;color:#f6fbff;">The message to land</h3>
+                <p style="margin-top:6px;color:#d8e6f9;font-size:13px;line-height:1.6;">"This is not a dashboard. It is an AI-powered evidence workflow where UN colleagues retrieve real authoritative data, test hypotheses, and produce source-cited, chart-ready outputs — in minutes, not days."</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 14: RELIABILITY & GOVERNANCE -->
+        <section class="slide" data-title="14 | Governance & Data Trust">
+          <div class="kicker">Trust, Reliability, Governance</div>
+          <h2>Responsible AI analytics — built for UN standards</h2>
+          <p class="sub">Speed is only valuable if outputs are trustworthy. Every design decision prioritizes source transparency, quality signalling, and operational accountability.</p>
+
+          <div class="grid-3" style="margin-top:14px;">
+            <div class="card reveal">
+              <h3 style="color:var(--blue);font-size:14px;">Source traceability</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon">S</div><div><b>API source always listed</b><p>Every output states the exact API, series ID, and retrieval date used.</p></div></div>
+                <div class="row"><div class="icon">S</div><div><b>No mixed provenance</b><p>Data from different sources is clearly labelled. No silent merging of inconsistent definitions.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:var(--violet);font-size:14px;">Data quality signals</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--violet)">G</div><div><b>Coverage gap detection</b><p>If a country has fewer than N data points, the analysis flags it and suggests alternatives.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--violet)">G</div><div><b>Sparse-data warnings</b><p>Correlation/trend results include explicit cautions when data is thin — protecting publication integrity.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r3">
+              <h3 style="color:var(--green);font-size:14px;">Operational accountability</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--green)">L</div><div><b>Refresh logs</b><p>Hybrid Sync records every data update: source, status, indicator count, timestamp.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--green)">L</div><div><b>Chat library</b><p>All analyses persist to a searchable library — reproducible, shareable with colleagues.</p></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal r4" style="margin-top:14px;">
+            <h3 style="color:var(--ink-2);font-size:14px;">Recommended operating cadence for UN teams</h3>
+            <div class="timeline" style="margin-top:10px;">
+              <div class="milestone">
+                <div class="time">Daily</div>
+                <div><h4>Analyst use</h4><p>Run cross-source queries, generate charts, export for briefs and meeting preparation. Chat library captures every session.</p></div>
+              </div>
+              <div class="milestone">
+                <div class="time">Weekly</div>
+                <div><h4>Hybrid Sync</h4><p>Refresh metadata + missing-only data for priority indicators. Review update log — identify stale ranges.</p></div>
+              </div>
+              <div class="milestone">
+                <div class="time">Monthly</div>
+                <div><h4>Governance review</h4><p>Review scenario quality benchmarks, stale indicators, and analysis library for institutional knowledge capture.</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 15: COST CALCULATION -->
+        <section class="slide" data-title="15 | Cost Profiles">
+          <div class="kicker">Cost and Deployment</div>
+          <h2>Indicative monthly cost — three deployment options</h2>
+          <p class="sub">The local-first option makes this tool accessible to any team at near-zero cost. Hybrid mode is recommended for most UN teams balancing quality and budget.</p>
+
+          <div class="cost-grid">
+            <div class="cost-card reveal">
+              <div class="cost-head" style="background:#eef5ff;color:#124987;">☁ Cloud-heavy (managed LLM APIs)</div>
+              <div class="cost-body">
+                <div class="cost-row"><span>Azure App Service compute</span><span>$90</span></div>
+                <div class="cost-row"><span>Azure OpenAI (GPT-4o usage)</span><span>$160</span></div>
+                <div class="cost-row"><span>Blob storage + logging</span><span>$30</span></div>
+                <div class="cost-row"><span>Ops overhead</span><span>$40</span></div>
+                <div class="cost-row" style="font-size:11px;color:var(--muted);"><span>Best for: high-volume, enterprise, 24/7 availability</span><span></span></div>
+                <div class="total"><span>Estimated total</span><span>~$320 / mo</span></div>
+              </div>
+            </div>
+
+            <div class="cost-card reveal r2" style="border-color:#fdba74;box-shadow:0 10px 30px rgba(253,186,116,.2);">
+              <div class="cost-head" style="background:#fff4eb;color:#8c3a03;">⚡ Hybrid (cloud + local Ollama) ★ Recommended</div>
+              <div class="cost-body">
+                <div class="cost-row"><span>Azure App Service compute</span><span>$70</span></div>
+                <div class="cost-row"><span>Azure OpenAI (selective use)</span><span>$45</span></div>
+                <div class="cost-row"><span>Ollama local inference</span><span>$0</span></div>
+                <div class="cost-row"><span>Storage + logging</span><span>$25</span></div>
+                <div class="cost-row" style="font-size:11px;color:var(--muted);"><span>Best for: most UN teams — quality + cost balance</span><span></span></div>
+                <div class="total"><span>Estimated total</span><span>~$140 / mo</span></div>
+              </div>
+            </div>
+
+            <div class="cost-card reveal r3">
+              <div class="cost-head" style="background:#ecfff5;color:#0f6a3f;">🖥 Local-first (laptop + Ollama)</div>
+              <div class="cost-body">
+                <div class="cost-row"><span>App runtime (local machine)</span><span>$0</span></div>
+                <div class="cost-row"><span>Ollama local LLM</span><span>$0</span></div>
+                <div class="cost-row"><span>DuckDB local storage</span><span>$0</span></div>
+                <div class="cost-row"><span>Optional cloud backup</span><span>$5–15</span></div>
+                <div class="cost-row" style="font-size:11px;color:var(--muted);"><span>Best for: sensitive data, demos, field missions</span><span></span></div>
+                <div class="total"><span>Estimated total</span><span>$0–15 / mo</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="card reveal r4">
+              <h3 style="color:var(--ink-2);font-size:14px;">Quick-start: run locally in 5 steps</h3>
+              <div class="code-block" style="margin-top:8px;font-size:10px;">git clone &lt;repo-url&gt;
+cd osaa-smu-data-app-prod
+python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt
+
+# Install Ollama from https://ollama.com/download
+ollama pull llama3.1:8b
+ollama serve
+
+# Add API keys to .env (ACLED key required)
+# Then run:
+streamlit run app/main.py</div>
+            </div>
+            <div class="card reveal r5">
+              <h3 style="color:var(--blue);font-size:14px;">API key requirements</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--green)">✓</div><div><b>World Bank — Free, no key</b><p>Open REST API, no registration required.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--green)">✓</div><div><b>UN SDG / UIS / Energy — Free</b><p>Open SDMX endpoints, no key needed.</p></div></div>
+                <div class="row"><div class="icon" style="background:#d97706)">⚠</div><div><b>ACLED — Free UN registration</b><p>Free API key for UN system staff. Register at acleddata.com.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">$</div><div><b>Azure OpenAI — UN ICT procurement</b><p>Available via existing UN Azure agreements or OICT.</p></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 16: QR CODES & CLOSING -->
+        <section class="slide" data-title="16 | Access Links & Closing">
+          <div class="kicker">Connect and Continue</div>
+          <h2>Access links, repository, and contact</h2>
+          <p class="sub">Scan QR codes to access the repository, connect professionally, or submit questions and collaboration ideas.</p>
+
+          <div class="qr-grid">
+            <div class="qr-card reveal">
+              <img src="images/Github%20QR.png" alt="GitHub QR code">
+              <h4>GitHub Repository</h4>
+              <p>Clone the app, read docs, and run locally in minutes.</p>
+              <div class="badge-row" style="justify-content:center;margin-top:8px;">
+                <span class="badge">Open source</span>
+                <span class="badge">MIT License</span>
+              </div>
+            </div>
+            <div class="qr-card reveal r2">
+              <img src="images/LinkedIn%20QR.png" alt="LinkedIn QR code">
+              <h4>LinkedIn</h4>
+              <p>Professional profile, project updates, and collaboration network.</p>
+              <div class="badge-row" style="justify-content:center;margin-top:8px;">
+                <span class="badge">UN OSAA SMU</span>
+              </div>
+            </div>
+            <div class="qr-card reveal r3">
+              <img src="images/QA%20bar%20code%202.jpg" alt="Q&A QR code">
+              <h4>Q&amp;A / Feedback</h4>
+              <p>Submit questions, collaboration proposals, or feature requests.</p>
+              <div class="badge-row" style="justify-content:center;margin-top:8px;">
+                <span class="badge">Open feedback</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal r4" style="margin-top:14px;background:linear-gradient(140deg,#0f1b2f,#0f2a45);color:white;border-color:#1a4060;text-align:center;">
+            <h3 style="font-family:'Space Grotesk';font-size:22px;color:#f6fbff;margin-top:4px;">Thank you</h3>
+            <p style="margin-top:8px;font-size:14px;color:#93c5fd;">UN OSAA Strategic Management Unit</p>
+            <p style="margin-top:4px;font-size:13px;color:#64748b;">AI-enabled evidence support for UN policy dialogue and Agenda 2030 monitoring</p>
+            <div class="pill-row" style="justify-content:center;margin-top:14px;">
+              <span class="pill" style="background:#1a3558;border-color:#2a5a87;color:#93c5fd;">Real data · No hallucination</span>
+              <span class="pill" style="background:#1a3558;border-color:#2a5a87;color:#93c5fd;">Local LLM · Privacy-safe</span>
+              <span class="pill" style="background:#1a3558;border-color:#2a5a87;color:#93c5fd;">Minutes to insight</span>
+              <span class="pill" style="background:#1a3558;border-color:#2a5a87;color:#93c5fd;">Source-traceable</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="counter" id="counter">1 / 16</div>
+      <div class="footer-nav">
+        <button class="nav-btn" id="prevBtn" title="Previous">←</button>
+        <button class="nav-btn" id="nextBtn" title="Next">→</button>
+      </div>
+      <div class="progress" id="progress"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const agendaButtonsWrap = document.getElementById('agendaButtons');
+const counter = document.getElementById('counter');
+const progress = document.getElementById('progress');
+let current = 0;
+
+slides.forEach((slide, idx) => {
+  const b = document.createElement('button');
+  b.textContent = slide.dataset.title || `Slide ${idx + 1}`;
+  b.addEventListener('click', () => goTo(idx));
+  agendaButtonsWrap.appendChild(b);
+});
+const agendaButtons = Array.from(agendaButtonsWrap.querySelectorAll('button'));
+
+function render() {
+  slides.forEach((s, i) => s.classList.toggle('active', i === current));
+  agendaButtons.forEach((b, i) => b.classList.toggle('active', i === current));
+  counter.textContent = `${current + 1} / ${slides.length}`;
+  progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+}
+
+function goTo(i) { if (i >= 0 && i < slides.length) { current = i; render(); } }
+function next() { goTo(current + 1); }
+function prev() { goTo(current - 1); }
+
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('prevBtn').addEventListener('click', prev);
+
+document.addEventListener('keydown', (e) => {
+  if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); next(); }
+  if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); prev(); }
+  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+  if (e.key === 'End') { e.preventDefault(); goTo(slides.length - 1); }
+});
+
+const fsBtn = document.getElementById('fullscreenBtn');
+fsBtn.addEventListener('click', async () => {
+  if (!document.fullscreenElement) {
+    await document.documentElement.requestFullscreen();
+    fsBtn.textContent = 'Exit Fullscreen';
+  } else {
+    await document.exitFullscreen();
+    fsBtn.textContent = 'Fullscreen';
+  }
+});
+
+const agendaPanel = document.getElementById('agendaPanel');
+document.getElementById('jumpAgenda').addEventListener('click', () => {
+  const isHidden = getComputedStyle(agendaPanel).display === 'none';
+  if (window.innerWidth <= 1320) {
+    agendaPanel.style.display = isHidden ? 'block' : 'none';
+    agendaPanel.style.position = 'absolute';
+    agendaPanel.style.zIndex = '20';
+    agendaPanel.style.width = '320px';
+    agendaPanel.style.height = 'calc(100% - 64px)';
+    agendaPanel.style.top = '64px';
+    agendaPanel.style.left = '0';
+    agendaPanel.style.boxShadow = '0 18px 35px rgba(0,0,0,.25)';
+  }
+});
+
+const themeBtn = document.getElementById('toggleTheme');
+let highContrast = false;
+themeBtn.addEventListener('click', () => {
+  highContrast = !highContrast;
+  document.documentElement.style.setProperty('--bg', highContrast ? '#e9eef5' : '#f2f5f9');
+  document.documentElement.style.setProperty('--line', highContrast ? '#bec9d8' : '#d6dde8');
+  document.documentElement.style.setProperty('--muted', highContrast ? '#4f5d74' : '#6b778c');
+});
+
+render();
+</script>
+</body>
+</html>

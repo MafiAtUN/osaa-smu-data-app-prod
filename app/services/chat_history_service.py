@@ -13,6 +13,10 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 _DB_PATH = Path("content/db.duckdb")
 
 # ---------------------------------------------------------------------------
@@ -128,50 +132,57 @@ def create_session(
     dataset_name: str,
     dataset_hash: str,
     first_message: str,
-) -> str:
-    """Create a new chat session. Returns the session ID."""
-    init_chat_tables()
-    session_id = str(uuid.uuid4())
-    name = first_message[:70] + ("…" if len(first_message) > 70 else "")
-    topic = _guess_topic(first_message, page)
-    tags = json.dumps(_auto_tag(first_message))
-    with _con() as con:
-        con.execute(
-            """INSERT INTO chat_sessions
-               (id, name, page, dataset_name, dataset_hash, topic, tags)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            [session_id, name, page, dataset_name, dataset_hash, topic, tags],
-        )
-    return session_id
+) -> str | None:
+    """Create a new chat session. Returns the session ID, or None on DB error."""
+    try:
+        init_chat_tables()
+        session_id = str(uuid.uuid4())
+        name = first_message[:70] + ("…" if len(first_message) > 70 else "")
+        topic = _guess_topic(first_message, page)
+        tags = json.dumps(_auto_tag(first_message))
+        with _con() as con:
+            con.execute(
+                """INSERT INTO chat_sessions
+                   (id, name, page, dataset_name, dataset_hash, topic, tags)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                [session_id, name, page, dataset_name, dataset_hash, topic, tags],
+            )
+        return session_id
+    except Exception as exc:
+        logger.warning("create_session failed: %s", exc)
+        return None
 
 
 def save_message(session_id: str, role: str, content: str) -> None:
     """Append a message to a session and keep counters / tags up to date."""
-    init_chat_tables()
-    msg_id = str(uuid.uuid4())
-    has_code = "```" in content
-    with _con() as con:
-        con.execute(
-            """INSERT INTO chat_messages (id, session_id, role, content, has_code)
-               VALUES (?, ?, ?, ?, ?)""",
-            [msg_id, session_id, role, content, has_code],
-        )
-        con.execute(
-            """UPDATE chat_sessions
-               SET message_count = message_count + 1,
-                   updated_at    = CURRENT_TIMESTAMP
-               WHERE id = ?""",
-            [session_id],
-        )
-        # Merge auto-tags derived from this message into the session
-        row = con.execute("SELECT tags FROM chat_sessions WHERE id = ?", [session_id]).fetchone()
-        if row:
-            existing: list[str] = json.loads(row[0] or "[]")
-            merged = list(dict.fromkeys(existing + _auto_tag(content)))[:8]
+    try:
+        init_chat_tables()
+        msg_id = str(uuid.uuid4())
+        has_code = "```" in content
+        with _con() as con:
             con.execute(
-                "UPDATE chat_sessions SET tags = ? WHERE id = ?",
-                [json.dumps(merged), session_id],
+                """INSERT INTO chat_messages (id, session_id, role, content, has_code)
+                   VALUES (?, ?, ?, ?, ?)""",
+                [msg_id, session_id, role, content, has_code],
             )
+            con.execute(
+                """UPDATE chat_sessions
+                   SET message_count = message_count + 1,
+                       updated_at    = CURRENT_TIMESTAMP
+                   WHERE id = ?""",
+                [session_id],
+            )
+            # Merge auto-tags derived from this message into the session
+            row = con.execute("SELECT tags FROM chat_sessions WHERE id = ?", [session_id]).fetchone()
+            if row:
+                existing: list[str] = json.loads(row[0] or "[]")
+                merged = list(dict.fromkeys(existing + _auto_tag(content)))[:8]
+                con.execute(
+                    "UPDATE chat_sessions SET tags = ? WHERE id = ?",
+                    [json.dumps(merged), session_id],
+                )
+    except Exception as exc:
+        logger.warning("save_message failed (session=%s): %s", session_id, exc)
 
 
 # ---------------------------------------------------------------------------
@@ -188,77 +199,100 @@ def get_sessions(
     limit: int = 150,
 ) -> pd.DataFrame:
     """Return sessions matching the given filters as a DataFrame."""
-    init_chat_tables()
-    clauses: list[str] = []
-    params: list = []
+    try:
+        init_chat_tables()
+        clauses: list[str] = []
+        params: list = []
 
-    if page:
-        clauses.append("page = ?")
-        params.append(page)
-    if topic:
-        clauses.append("topic = ?")
-        params.append(topic)
-    if tags:
-        tag_clauses = [f"tags LIKE ?" for _ in tags]
-        clauses.append(f"({' OR '.join(tag_clauses)})")
-        params.extend([f'%"{t}"%' for t in tags])
-    if date_from:
-        clauses.append("created_at >= ?")
-        params.append(date_from)
-    if date_to:
-        clauses.append("created_at <= ?")
-        params.append(date_to + " 23:59:59")
-    if search:
-        clauses.append("(name ILIKE ? OR dataset_name ILIKE ?)")
-        params.extend([f"%{search}%", f"%{search}%"])
+        if page:
+            clauses.append("page = ?")
+            params.append(page)
+        if topic:
+            clauses.append("topic = ?")
+            params.append(topic)
+        if tags:
+            tag_clauses = ["tags LIKE ?" for _ in tags]
+            clauses.append(f"({' OR '.join(tag_clauses)})")
+            params.extend([f'%"{t}"%' for t in tags])
+        if date_from:
+            clauses.append("created_at >= ?")
+            params.append(date_from)
+        if date_to:
+            clauses.append("created_at <= ?")
+            params.append(date_to + " 23:59:59")
+        if search:
+            clauses.append("(name ILIKE ? OR dataset_name ILIKE ?)")
+            params.extend([f"%{search}%", f"%{search}%"])
 
-    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-    with _con() as con:
-        return con.execute(
-            f"SELECT * FROM chat_sessions {where} ORDER BY updated_at DESC LIMIT ?",
-            params + [limit],
-        ).df()
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        with _con() as con:
+            return con.execute(
+                f"SELECT * FROM chat_sessions {where} ORDER BY updated_at DESC LIMIT ?",
+                params + [limit],
+            ).df()
+    except Exception as exc:
+        logger.warning("get_sessions failed: %s", exc)
+        return pd.DataFrame()
 
 
 def get_messages(session_id: str) -> pd.DataFrame:
     """Return all messages for a session ordered by time."""
-    init_chat_tables()
-    with _con() as con:
-        return con.execute(
-            """SELECT role, content, has_code, created_at
-               FROM chat_messages
-               WHERE session_id = ?
-               ORDER BY created_at""",
-            [session_id],
-        ).df()
+    try:
+        init_chat_tables()
+        with _con() as con:
+            return con.execute(
+                """SELECT role, content, has_code, created_at
+                   FROM chat_messages
+                   WHERE session_id = ?
+                   ORDER BY created_at""",
+                [session_id],
+            ).df()
+    except Exception as exc:
+        logger.warning("get_messages failed (session=%s): %s", session_id, exc)
+        return pd.DataFrame()
 
 
 def get_session_count() -> int:
-    init_chat_tables()
-    with _con() as con:
-        return con.execute("SELECT COUNT(*) FROM chat_sessions").fetchone()[0]
+    """Return the total number of stored chat sessions."""
+    try:
+        init_chat_tables()
+        with _con() as con:
+            return con.execute("SELECT COUNT(*) FROM chat_sessions").fetchone()[0]
+    except Exception as exc:
+        logger.warning("get_session_count failed: %s", exc)
+        return 0
 
 
 def get_all_topics() -> list[str]:
-    init_chat_tables()
-    with _con() as con:
-        rows = con.execute(
-            "SELECT DISTINCT topic FROM chat_sessions WHERE topic IS NOT NULL ORDER BY topic"
-        ).fetchall()
-    return [r[0] for r in rows]
+    """Return sorted list of distinct topic values stored in the DB."""
+    try:
+        init_chat_tables()
+        with _con() as con:
+            rows = con.execute(
+                "SELECT DISTINCT topic FROM chat_sessions WHERE topic IS NOT NULL ORDER BY topic"
+            ).fetchall()
+        return [r[0] for r in rows]
+    except Exception as exc:
+        logger.warning("get_all_topics failed: %s", exc)
+        return []
 
 
 def get_all_tags() -> list[str]:
-    init_chat_tables()
-    with _con() as con:
-        rows = con.execute("SELECT tags FROM chat_sessions").fetchall()
-    all_tags: set[str] = set()
-    for row in rows:
-        try:
-            all_tags.update(json.loads(row[0] or "[]"))
-        except Exception:
-            pass
-    return sorted(all_tags)
+    """Return sorted list of all unique tags across all sessions."""
+    try:
+        init_chat_tables()
+        with _con() as con:
+            rows = con.execute("SELECT tags FROM chat_sessions").fetchall()
+        all_tags: set[str] = set()
+        for row in rows:
+            try:
+                all_tags.update(json.loads(row[0] or "[]"))
+            except Exception:
+                pass
+        return sorted(all_tags)
+    except Exception as exc:
+        logger.warning("get_all_tags failed: %s", exc)
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -267,13 +301,19 @@ def get_all_tags() -> list[str]:
 
 def delete_session(session_id: str) -> None:
     """Delete a session and all of its messages."""
-    with _con() as con:
-        con.execute("DELETE FROM chat_messages WHERE session_id = ?", [session_id])
-        con.execute("DELETE FROM chat_sessions WHERE id = ?", [session_id])
+    try:
+        with _con() as con:
+            con.execute("DELETE FROM chat_messages WHERE session_id = ?", [session_id])
+            con.execute("DELETE FROM chat_sessions WHERE id = ?", [session_id])
+    except Exception as exc:
+        logger.warning("delete_session failed (session=%s): %s", session_id, exc)
 
 
 def clear_all_sessions() -> None:
     """Wipe all sessions and messages (use with care)."""
-    with _con() as con:
-        con.execute("DELETE FROM chat_messages")
-        con.execute("DELETE FROM chat_sessions")
+    try:
+        with _con() as con:
+            con.execute("DELETE FROM chat_messages")
+            con.execute("DELETE FROM chat_sessions")
+    except Exception as exc:
+        logger.warning("clear_all_sessions failed: %s", exc)

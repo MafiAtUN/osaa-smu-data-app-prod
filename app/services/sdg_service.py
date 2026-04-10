@@ -25,24 +25,29 @@ logger = get_logger(__name__)
 # Cached data fetching
 # ---------------------------------------------------------------------------
 
-@st.cache_data
-def get_data(url: str) -> Any:
-    """GET *url* and return the parsed JSON. Returns an ``Exception`` on failure."""
+@st.cache_data(show_spinner=False)
+def _cached_fetch(url: str) -> tuple[Any, str | None]:
+    """Internal cached HTTP GET. Returns ``(data, None)`` or ``(None, error_msg)``."""
     try:
         resp = requests.get(url)
         resp.raise_for_status()
         if not resp.text.strip():
-            return Exception("Empty response from API")
-        return resp.json()
+            return None, "Empty response from API"
+        return resp.json(), None
     except requests.exceptions.RequestException as exc:
-        st.cache_data.clear()
-        return Exception(f"Request failed: {exc}")
+        _cached_fetch.clear()
+        return None, f"Request failed: {exc}"
     except ValueError as exc:
-        st.cache_data.clear()
-        return Exception(f"Invalid JSON: {exc}")
+        _cached_fetch.clear()
+        return None, f"Invalid JSON: {exc}"
     except Exception as exc:
-        st.cache_data.clear()
-        return Exception(f"Unexpected error: {exc}")
+        _cached_fetch.clear()
+        return None, f"Unexpected error: {exc}"
+
+
+def get_data(url: str) -> tuple[Any, str | None]:
+    """GET *url* and return ``(data, None)`` on success or ``(None, error_msg)`` on failure."""
+    return _cached_fetch(url)
 
 
 def get_sdg_base_url() -> str:
@@ -68,7 +73,7 @@ def parse_sdg_query_with_llm(
 
     # Build full goals list from live API data or fallback to static list
     goals_info: dict[str, str] = {}
-    if goals_data and not isinstance(goals_data, Exception):
+    if goals_data:
         for g in goals_data:
             goals_info[str(g["code"])] = g["title"]
     else:
@@ -197,7 +202,7 @@ EXPLANATION: one-sentence description of the extracted parameters"""
         return parsed
     except Exception as exc:
         logger.exception("Error parsing SDG query with LLM")
-        st.error(f"Error parsing query: {exc}")
+        st.error("Could not interpret the SDG query. Please rephrase it.")
         return None
 
 
@@ -211,7 +216,7 @@ def fetch_sdg_data(
     iso3_df = get_iso_reference_df()
 
     indicator_codes: list[str] = []
-    if parameters.get("goal_codes") and indicators_data and not isinstance(indicators_data, Exception):
+    if parameters.get("goal_codes") and indicators_data:
         for gc in parameters["goal_codes"]:
             indicator_codes.extend(ind["code"] for ind in indicators_data if ind.get("goal") == gc)
     if parameters.get("indicators"):
@@ -249,12 +254,12 @@ def fetch_sdg_data(
 
     rows: list[dict] = []
     for page in range(1, max_pages + 1):
-        result = get_data(f"{data_url}&page={page}")
-        if isinstance(result, Exception):
+        result, fetch_err = _cached_fetch(f"{data_url}&page={page}")
+        if fetch_err:
             if page == 1:
-                return None, f"Error fetching data: {result}"
+                return None, f"Error fetching data: {fetch_err}"
             break
-        page_data = result.get("data", [])
+        page_data = result.get("data", []) if result else []
         if not page_data:
             break
         for entry in page_data:

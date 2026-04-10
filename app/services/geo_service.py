@@ -1,4 +1,9 @@
-"""Geographic reference data: ISO codes, regions, and fuzzy matching."""
+"""Geographic reference data: ISO codes, regions, and fuzzy matching.
+
+Provides helper functions for resolving country names to ISO-2/ISO-3 codes,
+grouping countries by UN region, and performing fuzzy country-name lookups.
+Key exports: ``get_african_countries``, ``iso2_to_iso3``, ``fuzzy_match_country``.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +32,23 @@ def get_countries_by_region(region: str, code_column: str = "m49") -> list[str]:
     """Return a list of country codes for the given *region*."""
     df = get_iso_reference_df()
     return df.loc[df["Region Name"] == region, code_column].tolist()
+
+
+def get_acled_region_countries(region: str) -> list[str]:
+    """Return country names from the ISO reference for an ACLED region name.
+
+    ACLED regions map to UN M49 sub-regions or intermediate regions
+    (e.g. "Western Africa", "Eastern Africa") and occasionally to top-level
+    region names (e.g. "Europe").  We check all three columns so a single
+    lookup handles every case.
+    """
+    df = get_iso_reference_df()
+    mask = (
+        (df["Sub-region Name"] == region)
+        | (df["Intermediate Region Name"] == region)
+        | (df["Region Name"] == region)
+    )
+    return df.loc[mask, "Country or Area"].dropna().tolist()
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,10 @@
-"""Reusable table and spreadsheet components."""
+"""Reusable table and spreadsheet components.
+
+Provides ``st.dataframe``-based table renderers and a ``show_pygwalker`` wrapper
+that embeds the PyGWalker interactive spreadsheet explorer.  Handles column
+formatting, download buttons, and compatibility shims for different PyGWalker
+versions.  Key exports: ``show_data_table``, ``show_pygwalker``.
+"""
 
 from __future__ import annotations
 
@@ -48,6 +54,8 @@ def show_mitosheet(df: pd.DataFrame) -> None:
 
 def show_pygwalker(df: pd.DataFrame) -> None:
     """Show the PyGWalker interactive visualization tool."""
+    import hashlib
+
     if hasattr(st, "user") and (not hasattr(st, "experimental_user") or st.experimental_user != st.user):
         try:
             st.experimental_user = st.user
@@ -68,8 +76,11 @@ def show_pygwalker(df: pd.DataFrame) -> None:
         else:
             raise
 
-    @st.cache_resource
-    def _get_html(_df: pd.DataFrame) -> str:
+    # df_hash is NOT prefixed with _ so it IS included in the cache key.
+    # _df IS prefixed so the non-hashable DataFrame is excluded from hashing.
+    @st.cache_data
+    def _get_html(_df: pd.DataFrame, df_hash: str) -> str:
         return get_streamlit_html(_df, spec="./gw0.json", use_kernel_calc=True, debug=False)
 
-    components.html(_get_html(df), width=1300, height=1000, scrolling=True)
+    df_hash = hashlib.md5(pd.util.hash_pandas_object(df, index=True).values).hexdigest()
+    components.html(_get_html(df, df_hash), width=1300, height=1000, scrolling=True)

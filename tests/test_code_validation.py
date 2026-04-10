@@ -31,6 +31,18 @@ class TestValidateCode:
     def test_safe_numpy_import(self):
         validate_code("import numpy as np\noutput = np.array([1,2,3])")
 
+    def test_blocks_dunder_attribute_access(self):
+        with pytest.raises(ValueError, match="Unsafe (keyword|attribute)"):
+            validate_code("output = df.__class__")
+
+    def test_blocks_dangerous_dataframe_export(self):
+        with pytest.raises(ValueError, match="Unsafe method"):
+            validate_code("output = df.head(); df.to_csv('out.csv')")
+
+    def test_blocks_getattr_escape_hatch(self):
+        with pytest.raises(ValueError, match="Unsafe (name|call)"):
+            validate_code("output = getattr(df, 'shape')")
+
 
 class TestCleanImports:
     def test_removes_import(self):

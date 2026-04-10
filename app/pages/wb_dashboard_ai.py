@@ -1,4 +1,10 @@
-"""World Bank data dashboard page (AI-powered query)."""
+"""World Bank data dashboard page with AI-powered natural-language query.
+
+Displays a query input (pre-built pill suggestions + free-text) that is parsed
+by ``parse_wb_query_with_llm`` from ``wb_service``, fetches matching indicator
+time-series via ``wbgapi``, and renders results as a line chart, data table,
+PyGWalker explorer, and AI analysis/chat tabs via ``render_analysis_tabs``.
+"""
 
 import plotly.express as px
 import streamlit as st
@@ -29,12 +35,12 @@ if "wb_query_history" not in st.session_state:
 
 page_header(
     "🌐",
-    "World Bank Dashboard",
-    "Explore World Bank development indicators using AI-powered natural language queries or manual filters.",
+    "World Bank Data",
+    "Explore World Bank development indicators — ask AI in plain English or filter manually.",
     badge="AI",
 )
 
-tab_ai, tab_manual = st.tabs(["🤖 AI-Powered Query", "⚙️ Manual Selection"])
+tab_ai, tab_manual = st.tabs(["🤖 Ask AI", "🔧 Filter Manually"])
 
 # ---- AI Tab ----
 with tab_ai:
@@ -139,14 +145,23 @@ with tab_manual:
         else:
             sel_regions = [r for r in sel_regions if r != "SELECT ALL"]
 
-        sel_countries: list[str] = []
+        # Build country list from selected regions
+        iso3_to_name = dict(zip(iso3_df["iso3"].dropna(), iso3_df.dropna(subset=["iso3"])["Country or Area"]))
+        region_iso3: list[str] = []
         for r in sel_regions:
-            sel_countries.extend(iso3_df.loc[iso3_df["Region Name"] == r, "iso3"].tolist())
-        sel_countries = list(set(sel_countries))
+            region_iso3.extend(iso3_df.loc[iso3_df["Region Name"] == r, "iso3"].dropna().tolist())
+        region_iso3 = list(set(region_iso3))
+        defaults = sorted(f"{c} - {iso3_to_name[c]}" for c in region_iso3 if c in iso3_to_name)
+        available = sorted(
+            f"{row.iso3} - {row['Country or Area']}"
+            for _, row in iso3_df.dropna(subset=["iso3"]).iterrows()
+        )
 
-        iso3_to_name = dict(zip(iso3_df["iso3"], iso3_df["Country or Area"]))
-        defaults = [f"{c} - {iso3_to_name[c]}" for c in sel_countries if c in iso3_to_name]
-        available = [f"{row.iso3} - {row['Country or Area']}" for _, row in iso3_df.iterrows()]
+        # Reactive cascade: write new defaults directly into session state BEFORE the widget renders
+        if frozenset(st.session_state.get("m_wb_regions_prev", [])) != frozenset(sel_regions):
+            st.session_state["m_wb_regions_prev"] = list(sel_regions)
+            st.session_state["m_wb_countries"] = defaults
+
         final = st.multiselect(
             "Countries:",
             available,
@@ -155,6 +170,7 @@ with tab_manual:
             placeholder="Select by country",
             key="m_wb_countries",
         )
+        st.caption(f"{len(final)} countries selected.")
         selected_iso3 = [e.split(" - ")[0] for e in final]
 
     selected_years = st.slider(

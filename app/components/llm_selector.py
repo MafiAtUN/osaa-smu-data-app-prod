@@ -1,4 +1,10 @@
-"""Sidebar widget for choosing the active LLM provider / model."""
+"""Sidebar widget for choosing the active LLM provider and model.
+
+Renders a persistent sidebar selector that lists all configured LLM providers
+(Azure OpenAI accounts and local Ollama) and their available models.  Stores the
+user's selection in ``st.session_state`` and displays a provider/model/account
+info card.  Key export: ``render_llm_selector``.
+"""
 
 from __future__ import annotations
 
@@ -100,21 +106,78 @@ def render_llm_selector() -> None:
         if info:
             cat = _model_category(selected)
             provider_label = _PROVIDER_LABELS.get(cat, "Azure AI")
+
+            # Speed badge colour
+            _speed_colors = {
+                "Very Fast": "#16A34A",
+                "Fast": "#2563EB",
+                "Medium": "#D97706",
+                "Varies": "#64748B",
+            }
+            speed = info.get("speed", "")
+            speed_color = _speed_colors.get(speed, "#64748B")
+
+            # Tier badge colour
+            _tier_colors = {
+                "Flagship": "#7C3AED",
+                "Efficient": "#2563EB",
+                "Lightweight": "#0891B2",
+                "Open-source": "#059669",
+                "Router": "#64748B",
+            }
+            tier = info.get("tier", "")
+            tier_color = _tier_colors.get(tier, "#64748B")
+
+            description = info.get("description", "")
+            context_window = info.get("context_window", "")
+            max_output = info.get("max_output", "")
+            strengths = info.get("strengths", "")
+            params = info.get("params", "")
+            modalities: list[str] = info.get("modalities", [])
+            knowledge_cutoff = info.get("knowledge_cutoff", "")
+
+            def _badge(label: str, bg: str, fg: str) -> str:
+                return (
+                    f'<span style="background:{bg};color:{fg};border:1px solid {fg}40;'
+                    f'border-radius:4px;padding:1px 6px;font-size:0.6rem;font-weight:600;'
+                    f'margin-right:3px;white-space:nowrap;">{label}</span>'
+                )
+
+            # Tier + speed badges
+            top_badges = ""
+            if tier:
+                top_badges += _badge(tier, f"{tier_color}1A", tier_color)
+            if speed:
+                top_badges += _badge(speed, f"{speed_color}1A", speed_color)
+
+            # Modality chips
+            _modality_icons = {"Text": "T", "Vision": "👁"}
+            modality_html = ""
+            for m in modalities:
+                icon = _modality_icons.get(m, m)
+                modality_html += _badge(f"{icon} {m}", "#1E293B", "#94A3B8")
+
+            def _row(label: str, value: str, value_style: str = "") -> str:
+                style = f' style="{value_style}"' if value_style else ""
+                return (
+                    f'<div class="smu-llm-info-row">'
+                    f'<span>{label}</span><span{style}>{value}</span></div>'
+                )
+
             st.markdown(
                 f"""
                 <div class="smu-llm-info">
-                    <div class="smu-llm-info-row">
-                        <span>Provider</span>
-                        <span>{provider_label}</span>
-                    </div>
-                    <div class="smu-llm-info-row">
-                        <span>Model</span>
-                        <span>{info["model"]}</span>
-                    </div>
-                    <div class="smu-llm-info-row">
-                        <span>Account</span>
-                        <span>{info["account"]}</span>
-                    </div>
+                    <div style="font-size:0.68rem;color:#94A3B8;margin-bottom:0.4rem;line-height:1.4;">{description}</div>
+                    <div style="margin-bottom:0.4rem;">{top_badges}</div>
+                    {f'<div style="margin-bottom:0.6rem;">{modality_html}</div>' if modality_html else ""}
+                    {_row("Provider", provider_label)}
+                    {_row("Model", info["model"])}
+                    {_row("Account", info["account"])}
+                    {_row("Parameters", params) if params else ""}
+                    {_row("Context in", context_window) if context_window else ""}
+                    {_row("Max output", max_output) if max_output else ""}
+                    {_row("Knowledge", knowledge_cutoff) if knowledge_cutoff else ""}
+                    {_row("Strengths", strengths, "text-align:right;max-width:58%;font-size:0.65rem;") if strengths else ""}
                 </div>
                 """,
                 unsafe_allow_html=True,

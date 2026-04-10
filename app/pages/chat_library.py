@@ -1,4 +1,10 @@
-"""Chat History Library — browse, filter, and review past AI analysis conversations."""
+"""Chat History Library — browse, filter, and review past AI analysis conversations.
+
+Reads saved chat sessions from the DuckDB chat-history store and displays them
+in a searchable, filterable list grouped by data source.  Users can re-read full
+conversation transcripts, see which dataset was active, and delete individual
+sessions.  No LLM calls are made on this page; it is read-only.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +13,7 @@ import json
 import streamlit as st
 
 from app.components.styles import page_header, section_divider
+from app.core.constants import SOURCE_DISPLAY_LABELS
 from app.services.chat_history_service import (
     clear_all_sessions,
     delete_session,
@@ -37,7 +44,7 @@ with st.sidebar:
         "ACLED": "acled",
         "World Bank": "wb",
         "SDG": "sdg",
-        "Data Dashboard": "generic",
+        "Data Explorer": "generic",
     }
     sel_page_label = st.selectbox("Data source", list(_PAGE_MAP.keys()), key="lib_page")
     sel_page = _PAGE_MAP[sel_page_label]
@@ -96,7 +103,7 @@ section_divider("Conversations")
 if sessions_df.empty:
     st.info(
         "No conversations match the current filters. "
-        "Start an analysis in any dashboard to create your first entry.",
+        "Start an analysis on any data page to create your first entry.",
         icon="💬",
     )
 else:
@@ -112,7 +119,8 @@ else:
 
     st.divider()
 
-    _SOURCE_LABELS = {"acled": "ACLED", "wb": "World Bank", "sdg": "SDG", "generic": "Dashboard"}
+    # Merge constants map with the "generic" page key used only in the chat library
+    _LABELS = {**SOURCE_DISPLAY_LABELS, "generic": "Data Explorer"}
 
     for _, row in sessions_df.iterrows():
         tags: list[str] = []
@@ -121,7 +129,7 @@ else:
         except Exception:
             pass
 
-        source_label = _SOURCE_LABELS.get(row.get("page", ""), (row.get("page") or "?").upper())
+        source_label = _LABELS.get(row.get("page", ""), (row.get("page") or "?").upper())
         updated_str = str(row.get("updated_at", ""))[:16]
         msg_count = int(row.get("message_count", 0))
         topic = row.get("topic") or "—"

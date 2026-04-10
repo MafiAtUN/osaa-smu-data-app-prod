@@ -1,10 +1,18 @@
-"""PID (Project Initiation Document) checker page."""
+"""PID (Project Initiation Document) checker page.
+
+Accepts a pasted or uploaded Project Initiation Document and runs LLM-powered
+quality checks — completeness, logical consistency, data-backing adequacy — using
+a LangChain LCEL chain backed by ``llm_service.get_llm``.  Results are displayed
+as structured feedback sections with pass/flag/fail indicators.
+"""
 
 import streamlit as st
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.components.styles import page_header, section_divider
+from app.core.config import get_settings
+from app.core.security import require_password
 from app.services.llm_service import get_llm, get_selected_llm_name
 
 try:
@@ -24,6 +32,16 @@ try:
     import textract
 except ImportError:
     textract = None
+
+
+settings = get_settings()
+require_password(
+    session_prefix="pid",
+    password_hash=settings.app.pid_password_hash,
+    plain_password=settings.app.pid_password,
+    title="PID Checker",
+    help_text="Enter the PID page password to continue.",
+)
 
 
 def _extract_pdf(f):

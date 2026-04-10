@@ -67,6 +67,16 @@ pytest tests/
 The app is deployed to **Azure App Service**. The GitHub Actions workflow in
 `.github/workflows/main_osaa-data-app.yml` handles CI/CD on pushes to `main`.
 
+## Author
+
+**Mafizul Islam**
+Strategic Management Unit, UN Office of the Special Adviser on Africa (OSAA)
+
+- Email (UN): islam50@un.org
+- Email (personal): mafi@mafizul.me
+- GitHub: [github.com/mafiatun](https://github.com/mafiatun)
+- LinkedIn: [linkedin.com/in/mafizul](https://www.linkedin.com/in/mafizul/)
+
 ## License
 
-Internal UN OSAA project. Not for public distribution.
+MIT License — Copyright (c) 2024–2026 Mafizul Islam. See [LICENSE](../LICENSE) for details.

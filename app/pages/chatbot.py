@@ -1,4 +1,11 @@
-"""General-purpose OSAA chatbot page."""
+"""General-purpose OSAA chatbot page with persistent conversation history.
+
+Provides a free-form chat interface backed by the configured LLM (via
+``llm_service.get_llm``) and LangChain's ``RunnableWithMessageHistory`` for
+multi-turn context.  Conversation history is stored in ``st.session_state`` and
+optionally persisted to DuckDB via the chat-history service.  Token usage is
+tracked via ``tiktoken``.
+"""
 
 from operator import itemgetter
 from typing import List
@@ -82,6 +89,7 @@ page_header(
     "💬",
     "OSAA Chatbot",
     "Ask questions about UN OSAA's work, Africa's development, and related UN mandates.",
+    badge="AI",
 )
 
 st.caption(f"Using: **{get_selected_llm_name()}**")

@@ -422,19 +422,6 @@ def render_analysis_tabs(
 
 
 # ---------------------------------------------------------------------------
-# Backward-compat wrappers (kept so old call-sites still work if missed)
-# ---------------------------------------------------------------------------
-
-def llm_data_analysis(
-    df: pd.DataFrame,
-    chat_session_id: str,
-    chat_history: dict,  # no longer used — kept for API compatibility
-) -> None:
-    """Deprecated: use render_analysis_tabs instead."""
-    _render_analysis_chat(df, chat_session_id, "generic", "Dataset", None)
-
-
-# ---------------------------------------------------------------------------
 # Visualization tool
 # ---------------------------------------------------------------------------
 
@@ -446,12 +433,16 @@ def llm_graph_maker(df: pd.DataFrame) -> None:
         icon="📊",
     )
 
+    # Use a stable hash instead of id(df) — id() changes on every rerun because the
+    # DataFrame object is re-created, causing session_state keys to never match.
+    dh = _df_hash(df)
+
     # --- Chart-type quick-select buttons ---
     st.caption("Quick chart type:")
     cols = st.columns(len(_VIZ_CHART_TYPES))
     for col, (label, prefix) in zip(cols, _VIZ_CHART_TYPES):
-        if col.button(label, key=f"viz_chip_{label}_{id(df)}", use_container_width=True):
-            st.session_state[f"viz_prefix_{id(df)}"] = prefix
+        if col.button(label, key=f"viz_chip_{label}_{dh}", use_container_width=True):
+            st.session_state[f"viz_prefix_{dh}"] = prefix
 
     prompt_tmpl = ChatPromptTemplate.from_messages([
         ("system", _VIZ_SYSTEM_PROMPT),
@@ -462,7 +453,7 @@ def llm_graph_maker(df: pd.DataFrame) -> None:
     chain = prompt_tmpl | llm
 
     viz_container = st.container()
-    viz_key = f"viz_last_prompt_{id(df)}"
+    viz_key = f"viz_last_prompt_{dh}"
 
     if viz_key in st.session_state:
         graph_prompt = st.session_state.pop(viz_key)
@@ -495,14 +486,14 @@ def llm_graph_maker(df: pd.DataFrame) -> None:
                         with st.expander("View generated code"):
                             st.code(code_block, language="python")
 
-    prefix = st.session_state.pop(f"viz_prefix_{id(df)}", "")
-    with st.form(key=f"viz_form_{id(df)}", clear_on_submit=True):
+    prefix = st.session_state.pop(f"viz_prefix_{dh}", "")
+    with st.form(key=f"viz_form_{dh}", clear_on_submit=True):
         col1, col2 = st.columns([4, 1])
         with col1:
             graph_prompt = st.text_input(
                 "Describe the visualization…",
                 value=prefix,
-                key=f"viz_text_{id(df)}",
+                key=f"viz_text_{dh}",
                 label_visibility="collapsed",
                 placeholder="e.g. bar chart of top 10 countries by fatalities",
             )

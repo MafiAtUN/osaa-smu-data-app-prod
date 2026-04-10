@@ -1,8 +1,15 @@
-"""Local data access: DuckDB databases, vectorstore, and file uploads."""
+"""Local data access: DuckDB databases, vectorstore, and file uploads.
+
+Provides functions for reading from and writing to the local DuckDB databases
+(``content/db.duckdb`` for seed data, ``content/vectorstore.duckdb`` for RAG
+embeddings) and for handling user-uploaded CSV/Excel files.  Key exports:
+``get_retriever``, ``save_uploaded_file``, and ``load_seed_countries``.
+"""
 
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import duckdb
 import numpy as np
@@ -87,6 +94,7 @@ def refresh_db(db_path: str) -> None:
 
 
 def get_dataset_names(db_path: str) -> list[str]:
+    """Return the list of dataset names stored in the DuckDB metadata table."""
     conn = duckdb.connect(database=db_path, read_only=True)
     result = conn.execute("SELECT name FROM metadata").fetchall()
     conn.close()
@@ -94,6 +102,7 @@ def get_dataset_names(db_path: str) -> list[str]:
 
 
 def get_df(db_path: str, name: str) -> pd.DataFrame:
+    """Fetch a named table from the DuckDB database and return it as a DataFrame."""
     conn = duckdb.connect(database=db_path, read_only=True)
     df = conn.execute(f"SELECT * FROM {name}").df()
     conn.close()
@@ -105,7 +114,7 @@ def get_df(db_path: str, name: str) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 
-def get_retriever(db_path: str = VECTORSTORE_PATH):
+def get_retriever(db_path: str = VECTORSTORE_PATH) -> Any:
     """Return a LangChain retriever backed by the DuckDB vectorstore."""
     from langchain_community.vectorstores.duckdb import DuckDB
 

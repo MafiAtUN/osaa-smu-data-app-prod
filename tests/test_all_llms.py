@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import sys
 import time
-import traceback
 from unittest.mock import MagicMock
 
 
@@ -36,18 +34,19 @@ mock_st.secrets = {}
 mock_st.cache_data = MagicMock()
 sys.modules["streamlit"] = mock_st
 
-# Load .env manually
-from dotenv import load_dotenv
+# Load .env manually — imports must come after sys.modules mock above
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv()
 
-from app.core.config import LLM_PROVIDERS, load_settings
+from app.core.config import LLM_PROVIDERS, load_settings  # noqa: E402
 
 settings = load_settings()
 mock_st.session_state["_settings"] = settings
 
-from app.services.llm_service import (
-    create_azure_llm,
+from app.services.llm_service import (  # noqa: E402
     create_azure_embeddings,
+    create_azure_llm,
     create_ollama_llm,
     get_available_ollama_models,
 )
@@ -180,7 +179,7 @@ def main():
             if not success:
                 print(f"    - [{cat}] {name}: {msg}")
     else:
-        print(f"  Failed: 0")
+        print("  Failed: 0")
 
     print(f"\n  {GREEN if failed == 0 else YELLOW}{'All tests passed!' if failed == 0 else f'{failed} test(s) failed.'}{RESET}\n")
 

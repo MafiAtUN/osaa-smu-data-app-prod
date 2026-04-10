@@ -1,4 +1,10 @@
-"""Data file upload and analysis page."""
+"""Data file upload and analysis page.
+
+Lets users upload CSV or Excel files and immediately explore them with
+column filters, a PyGWalker interactive spreadsheet, and AI-powered analysis
+via ``render_analysis_tabs``.  Calls ``data_service`` only for file persistence;
+all analysis is handled by the shared analysis component.
+"""
 
 import pandas as pd
 import streamlit as st
@@ -8,11 +14,9 @@ from app.components.filters import column_filters
 from app.components.styles import page_header, section_divider
 from app.components.tables import show_pygwalker
 
-chat_session_id = "data-dashboard-chat-id"
-
 page_header(
     "📊",
-    "Data Dashboard",
+    "Data Explorer",
     "Upload a CSV, Excel, or Parquet file — then filter, visualize, and analyze your data with AI.",
 )
 
@@ -22,6 +26,13 @@ uploaded = st.file_uploader(
     type=["csv", "xlsx", "parquet"],
     label_visibility="collapsed",
     help="Supported formats: CSV, Excel (.xlsx), Parquet",
+)
+
+# Scoped to the specific file so chat history and dataset context reset on new upload.
+chat_session_id = (
+    f"data-dashboard-{uploaded.name}-{uploaded.size}"
+    if uploaded is not None
+    else "data-dashboard-default"
 )
 
 df = None

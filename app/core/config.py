@@ -1,4 +1,11 @@
-"""Centralized configuration loaded from environment variables and Streamlit secrets."""
+"""Centralized configuration loaded from environment variables and Streamlit secrets.
+
+Defines the ``Settings`` dataclass (read once at import time) that aggregates all
+credentials and tuneable constants — Azure OpenAI endpoints, ACLED API key, DuckDB
+paths, and LLM defaults.  All other modules must import values from here rather
+than calling ``os.getenv()`` directly.  Also exports ``LLM_PROVIDERS``,
+``OLLAMA_MODELS``, and ``DEFAULT_LLM`` for use by the LLM selector.
+"""
 
 from __future__ import annotations
 
@@ -49,6 +56,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "grok-3-mini",
         "model": "grok-3-mini",
         "description": "xAI Grok 3 Mini — fast reasoning model",
+        "context_window": "131K tokens",
+        "max_output": "16K tokens",
+        "speed": "Fast",
+        "tier": "Efficient",
+        "strengths": "Reasoning, Math, Code",
+        "params": "Undisclosed",
+        "modalities": ["Text"],
+        "knowledge_cutoff": "2024",
     },
     # ---- OpenAI GPT-5.x (via Azure UNMISS) ----
     "GPT-5.2": {
@@ -57,6 +72,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "gpt-5.2-chat",
         "model": "gpt-5.2-chat",
         "description": "OpenAI GPT-5.2 — latest flagship model",
+        "context_window": "128K tokens",
+        "max_output": "32K tokens",
+        "speed": "Medium",
+        "tier": "Flagship",
+        "strengths": "General, Reasoning, Vision",
+        "params": "Undisclosed",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "2025",
     },
     # ---- OpenAI GPT-5 (via Azure UNGA) ----
     "GPT-5 (UNGA)": {
@@ -65,6 +88,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "gpt-5-unga",
         "model": "gpt-5",
         "description": "OpenAI GPT-5 via UNGA account",
+        "context_window": "128K tokens",
+        "max_output": "32K tokens",
+        "speed": "Medium",
+        "tier": "Flagship",
+        "strengths": "General, Reasoning, Vision",
+        "params": "Undisclosed",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "2025",
     },
     # ---- OpenAI GPT-5 (via Azure OSAA v2) ----
     "GPT-5 (OSAA)": {
@@ -73,6 +104,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "gpt-5-osaa",
         "model": "gpt-5",
         "description": "OpenAI GPT-5 via OSAA v2 account",
+        "context_window": "128K tokens",
+        "max_output": "32K tokens",
+        "speed": "Medium",
+        "tier": "Flagship",
+        "strengths": "General, Reasoning, Vision",
+        "params": "Undisclosed",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "2025",
     },
     # ---- OpenAI GPT-4o (via Azure OSAA) ----
     "GPT-4o (OSAA)": {
@@ -81,6 +120,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "OSSAA",
         "model": "gpt-4o",
         "description": "OpenAI GPT-4o via OSAA account",
+        "context_window": "128K tokens",
+        "max_output": "16K tokens",
+        "speed": "Fast",
+        "tier": "Flagship",
+        "strengths": "General, Vision, Code",
+        "params": "~200B (est.)",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Oct 2023",
     },
     # ---- OpenAI GPT-4o (via Azure UNGA) ----
     "GPT-4o (UNGA)": {
@@ -89,6 +136,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "gpt-4o-unga",
         "model": "gpt-4o",
         "description": "OpenAI GPT-4o via UNGA account",
+        "context_window": "128K tokens",
+        "max_output": "16K tokens",
+        "speed": "Fast",
+        "tier": "Flagship",
+        "strengths": "General, Vision, Code",
+        "params": "~200B (est.)",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Oct 2023",
     },
     # ---- OpenAI GPT-4.1 (via Azure UNMISS) ----
     "GPT-4.1": {
@@ -97,6 +152,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "gpt-4.1",
         "model": "gpt-4.1",
         "description": "OpenAI GPT-4.1 — strong general-purpose model",
+        "context_window": "1M tokens",
+        "max_output": "32K tokens",
+        "speed": "Fast",
+        "tier": "Flagship",
+        "strengths": "Long context, Code, Instruction following",
+        "params": "Undisclosed",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Jun 2024",
     },
     # ---- OpenAI GPT-4.1-mini (via Azure OSAA) ----
     "GPT-4.1-mini (OSAA)": {
@@ -105,6 +168,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "OSAA",
         "model": "gpt-4.1-mini",
         "description": "OpenAI GPT-4.1-mini — fast & affordable",
+        "context_window": "1M tokens",
+        "max_output": "32K tokens",
+        "speed": "Very Fast",
+        "tier": "Efficient",
+        "strengths": "Long context, Speed, Cost-efficient",
+        "params": "Undisclosed",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Jun 2024",
     },
     # ---- OpenAI GPT-4.1-mini (via Azure UNMISS) ----
     "GPT-4.1-mini (UNMISS)": {
@@ -113,6 +184,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "gpt-4.1-mini",
         "model": "gpt-4.1-mini",
         "description": "OpenAI GPT-4.1-mini — fast & affordable",
+        "context_window": "1M tokens",
+        "max_output": "32K tokens",
+        "speed": "Very Fast",
+        "tier": "Efficient",
+        "strengths": "Long context, Speed, Cost-efficient",
+        "params": "Undisclosed",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Jun 2024",
     },
     # ---- OpenAI GPT-4o-mini (via Azure OSAA v2) ----
     "GPT-4o-mini": {
@@ -121,6 +200,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "osaa_app",
         "model": "gpt-4o-mini",
         "description": "OpenAI GPT-4o-mini — lightest OpenAI model",
+        "context_window": "128K tokens",
+        "max_output": "16K tokens",
+        "speed": "Very Fast",
+        "tier": "Lightweight",
+        "strengths": "Speed, Cost-efficient, Vision",
+        "params": "~8B (est.)",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Oct 2023",
     },
     # ---- Meta Llama (via Azure UNMISS) ----
     "Llama 4 Maverick": {
@@ -129,6 +216,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "Llama-4-Maverick-17B-128E-Instruct-FP8",
         "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
         "description": "Meta Llama 4 Maverick 17B — open-source powerhouse",
+        "context_window": "1M tokens",
+        "max_output": "16K tokens",
+        "speed": "Fast",
+        "tier": "Open-source",
+        "strengths": "Multilingual, Code, Long context",
+        "params": "17B active / 400B total (MoE 128E)",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "2024",
     },
     # ---- MoonshotAI Kimi (via Azure UNMISS) ----
     "Kimi K2.5": {
@@ -137,6 +232,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "Kimi-K2.5",
         "model": "Kimi-K2.5",
         "description": "MoonshotAI Kimi K2.5 — multilingual reasoning model",
+        "context_window": "128K tokens",
+        "max_output": "8K tokens",
+        "speed": "Fast",
+        "tier": "Efficient",
+        "strengths": "Multilingual, Reasoning, Science",
+        "params": "Undisclosed",
+        "modalities": ["Text"],
+        "knowledge_cutoff": "2024",
     },
     # ---- Model Routers ----
     "Model Router (UNMISS)": {
@@ -145,6 +248,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "model-router",
         "model": "model-router",
         "description": "Azure AI Model Router — auto-selects the best model",
+        "context_window": "Varies",
+        "max_output": "Varies",
+        "speed": "Varies",
+        "tier": "Router",
+        "strengths": "Auto-routing, Flexibility",
+        "params": "N/A",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Varies",
     },
     "Model Router (UNGA)": {
         "provider": "azure",
@@ -152,6 +263,14 @@ LLM_PROVIDERS: dict[str, dict] = {
         "deployment": "model-router",
         "model": "model-router",
         "description": "Azure AI Model Router — auto-selects the best model",
+        "context_window": "Varies",
+        "max_output": "Varies",
+        "speed": "Varies",
+        "tier": "Router",
+        "strengths": "Auto-routing, Flexibility",
+        "params": "N/A",
+        "modalities": ["Text", "Vision"],
+        "knowledge_cutoff": "Varies",
     },
 }
 
@@ -187,9 +306,17 @@ class SDGConfig:
 
 
 @dataclass(frozen=True)
+class UNDataConfig:
+    api_url: str = "https://nsi-reset-undata-dst.dev.officialstatistics.org/rest"
+    catalogue_path: str = "content/un_sdg_catalogue.json"
+
+
+@dataclass(frozen=True)
 class AppConfig:
     password: str = ""
+    password_hash: str = ""
     pid_password: str = ""
+    pid_password_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -198,6 +325,7 @@ class Settings:
     ollama: OllamaConfig = field(default_factory=OllamaConfig)
     acled: ACLEDConfig = field(default_factory=ACLEDConfig)
     sdg: SDGConfig = field(default_factory=SDGConfig)
+    undata: UNDataConfig = field(default_factory=UNDataConfig)
     app: AppConfig = field(default_factory=AppConfig)
 
     def get_azure_account(self, name: str) -> AzureAccountConfig:
@@ -245,9 +373,15 @@ def load_settings() -> Settings:
         sdg=SDGConfig(
             api_url=_get("UN_SDG_API_URL", "https://unstats.un.org/sdgs/UNSDGAPIV5"),
         ),
+        undata=UNDataConfig(
+            api_url=_get("UNDATA_NSI_URL", "https://nsi-reset-undata-dst.dev.officialstatistics.org/rest"),
+            catalogue_path=_get("UNDATA_CATALOGUE_PATH", "content/un_sdg_catalogue.json"),
+        ),
         app=AppConfig(
-            password=_get("app_password", ""),
-            pid_password=_get("pid_password", ""),
+            password=_get("app_password", "") or _get("APP_PASSWORD", ""),
+            password_hash=_get("app_password_hash", "") or _get("APP_PASSWORD_HASH", ""),
+            pid_password=_get("pid_password", "") or _get("PID_PASSWORD", ""),
+            pid_password_hash=_get("pid_password_hash", "") or _get("PID_PASSWORD_HASH", ""),
         ),
     )
 

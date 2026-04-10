@@ -21,17 +21,28 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p content/rag_documents
 
+# Run as a non-root user in production
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \
+    && chown -R appuser:appgroup /app
+
 # Expose port
 EXPOSE 8000
 
 # Set environment variables
 ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 ENV STREAMLIT_SERVER_PORT=8000
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
+ENV STREAMLIT_SERVER_HEADLESS=true
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+ENV STREAMLIT_SERVER_ENABLE_CORS=true
+ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/_stcore/health || exit 1
+    CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.getenv(\"PORT\", \"8000\")}/_stcore/health', timeout=5)"
+
+USER appuser
 
 # Run the application
-CMD ["streamlit", "run", "app/main.py", "--server.port=8000", "--server.address=0.0.0.0"]
+CMD ["sh", "-c", "streamlit run app/main.py --server.port=${PORT:-8000} --server.address=0.0.0.0"]

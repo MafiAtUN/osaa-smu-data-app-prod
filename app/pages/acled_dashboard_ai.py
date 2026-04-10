@@ -1,4 +1,10 @@
-"""ACLED data dashboard page (AI-powered query)."""
+"""ACLED conflict data dashboard page with AI-powered natural-language query.
+
+Displays a query input (pre-built pill suggestions + free-text) that is parsed
+by ``parse_acled_query_with_llm`` from ``acled_service``, fetches matching
+conflict-event records via the ACLED REST API, and renders results as a map,
+data table, and AI analysis/chat tabs via ``render_analysis_tabs``.
+"""
 
 import streamlit as st
 
@@ -17,6 +23,7 @@ from app.services.acled_service import (
 from app.services.geo_service import (
     ACLED_REGION_MAPPING,
     ACLED_SUB_EVENT_TYPES,
+    get_acled_region_countries,
     get_iso_reference_df,
 )
 
@@ -28,12 +35,12 @@ if "acled_query_history" not in st.session_state:
 
 page_header(
     "⚔️",
-    "ACLED Dashboard",
-    "Fetch and analyze armed conflict and protest event data using AI-powered queries or manual filters.",
+    "ACLED Conflict Intelligence",
+    "Explore armed conflict and protest event data — ask AI in plain English or filter manually.",
     badge="AI",
 )
 
-tab_ai, tab_manual = st.tabs(["🤖 AI-Powered Query", "⚙️ Manual Selection"])
+tab_ai, tab_manual = st.tabs(["🤖 Ask AI", "🔧 Filter Manually"])
 
 # ---- AI Tab ----
 with tab_ai:
@@ -79,27 +86,58 @@ with tab_ai:
 # ---- Manual Tab ----
 with tab_manual:
     st.markdown("**Select event types, countries, and a date range manually.**")
-    sel_events = st.multiselect(
-        "Event types",
-        ACLED_SUB_EVENT_TYPES,
-        None,
-        placeholder="Select event type(s)",
-        label_visibility="collapsed",
-    )
+
+    col_evt, col_all = st.columns([4, 1])
+    with col_evt:
+        sel_events = st.multiselect(
+            "Event types",
+            ACLED_SUB_EVENT_TYPES,
+            key="acled_ai_sub_events",
+            placeholder="Leave empty for all types, or pick specific ones",
+            label_visibility="collapsed",
+        )
+    with col_all:
+        if st.button("All Types", use_container_width=True, key="all_events_ai_btn"):
+            st.session_state["acled_ai_sub_events"] = []
+            st.rerun()
+    if not sel_events:
+        st.caption("ℹ️ All event types will be included (no filter).")
+
+    # Region → country cascade
     sel_regions = st.multiselect(
         "Regions",
-        ACLED_REGION_MAPPING.keys(),
+        list(ACLED_REGION_MAPPING.keys()),
         None,
         placeholder="Filter by region (optional)",
         label_visibility="collapsed",
+        key="m_acled_regions",
     )
+
+    # Build country defaults from selected regions
+    default_countries: list[str] = []
+    for r in sel_regions:
+        default_countries.extend(get_acled_region_countries(r))
+    default_countries = sorted(set(default_countries))
+
+    all_country_names = sorted(iso3_df["Country or Area"].dropna().tolist())
+    valid_defaults = [c for c in default_countries if c in all_country_names]
+
+    # Reactive cascade: write new defaults directly into session state BEFORE the widget renders
+    if frozenset(st.session_state.get("m_acled_regions_prev", [])) != frozenset(sel_regions):
+        st.session_state["m_acled_regions_prev"] = list(sel_regions)
+        st.session_state["m_acled_countries"] = valid_defaults
+
     sel_countries = st.multiselect(
         "Countries",
-        iso3_df["Country or Area"],
-        None,
+        all_country_names,
+        default=valid_defaults,
         placeholder="Select by country",
         label_visibility="collapsed",
+        key="m_acled_countries",
     )
+    st.caption(f"{len(sel_countries)} countries selected.")
+
+    st.caption("⏱️ ACLED data typically has a 1–2 week lag — very recent dates may return no results.")
     col1, col2 = st.columns(2)
     with col1:
         m_from = st.date_input("From Date", value=None, key="m_from")
@@ -122,16 +160,11 @@ with tab_manual:
                 p: dict = {"_format": "json"}
                 if sel_countries:
                     p["country"] = "|".join(sel_countries)
-                if sel_regions:
-                    codes = [str(ACLED_REGION_MAPPING[r]) for r in sel_regions if r in ACLED_REGION_MAPPING]
-                    if codes:
-                        p["region"] = "|".join(codes)
                 if sel_events:
                     p["sub_event_type"] = "|".join(sel_events)
                 if m_from and m_to and m_to >= m_from:
-                    p["event_date"] = m_from.strftime("%Y-%m-%d")
-                    p["event_date_where"] = ">="
-                    p["event_date_end"] = m_to.strftime("%Y-%m-%d")
+                    p["event_date"] = f"{m_from.strftime('%Y-%m-%d')}:{m_to.strftime('%Y-%m-%d')}"
+                    p["event_date_where"] = "BETWEEN"
                 if m_rows > 0:
                     p["limit"] = m_rows
                 result_df = fetch_acled_data(p, token)

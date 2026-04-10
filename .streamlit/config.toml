@@ -1,8 +1,11 @@
 [server]
-port = 1000
 address = "0.0.0.0"
-enableCORS = false
-enableXsrfProtection = false
+headless = true
+enableCORS = true
+enableXsrfProtection = true
+enableStaticServing = false
+maxUploadSize = 50
+maxMessageSize = 50
 
 [browser]
 gatherUsageStats = false

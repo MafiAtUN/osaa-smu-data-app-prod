@@ -1,4 +1,11 @@
-"""World Bank data access via the ``wbgapi`` package."""
+"""World Bank data access via the ``wbgapi`` package.
+
+Wraps the World Bank Open Data API to search indicators, fetch time-series
+data for African countries, and convert natural-language questions into
+``wbgapi`` query parameters via LLM.  Key exports: ``fetch_wb_data``,
+``search_wb_indicators``, ``parse_wb_query_with_llm``, and
+``WB_QUERY_SUGGESTIONS`` for pre-built UI pill prompts.
+"""
 
 from __future__ import annotations
 
@@ -414,7 +421,7 @@ EXPLANATION: one-sentence description of the extracted parameters"""
 
     except Exception as exc:
         logger.exception("Error parsing WB query with LLM")
-        st.error(f"Error parsing query: {exc}")
+        st.error("Could not interpret the World Bank query. Please rephrase it.")
         return None
 
 

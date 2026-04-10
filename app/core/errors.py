@@ -1,4 +1,10 @@
-"""Custom exception hierarchy for the SMU Data App."""
+"""Custom exception hierarchy for the SMU Data App.
+
+Defines a base ``AppError`` and typed sub-classes (``ConfigError``,
+``DataFetchError``, ``LLMError``, etc.) that allow callers to distinguish
+infrastructure failures from data-layer or LLM failures with a single
+``except AppError`` clause where appropriate.
+"""
 
 
 class AppError(Exception):

@@ -1,4 +1,11 @@
-"""Structured logging with automatic redaction of secrets."""
+"""Structured logging with automatic redaction of secrets.
+
+Configures a module-level logger factory (``get_logger``) whose handlers apply
+regex-based redaction filters to strip API keys, tokens, and passwords from log
+output before they reach any sink.  All application modules should obtain their
+logger via ``get_logger(__name__)`` rather than calling ``logging.getLogger``
+directly.
+"""
 
 from __future__ import annotations
 
@@ -43,3 +50,16 @@ def get_logger(name: str) -> logging.Logger:
     """Return a named logger. Calls *setup_logging* on first use."""
     setup_logging()
     return logging.getLogger(name)
+
+
+def sanitize_text(value: str) -> str:
+    """Redact likely secrets from arbitrary text."""
+    sanitized = value
+    for pattern in _REDACT_PATTERNS:
+        sanitized = pattern.sub(lambda m: m.group(0).split("=")[0] + "=***" if "=" in m.group(0) else "***", sanitized)
+    return sanitized
+
+
+def generic_user_error(message: str = "Something went wrong. Please try again or contact the administrator.") -> str:
+    """Return a stable, non-sensitive message safe to show to end users."""
+    return message

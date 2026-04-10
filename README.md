@@ -64,8 +64,42 @@ See `.env.example` and `.streamlit/secrets.toml.example` for the full list.
 
 ## Deployment
 
-Deployed via Docker to **Azure App Service**.
+Deployed via Docker to **Azure App Service** and can also run on **Railway**.
 GitHub Actions workflow: `.github/workflows/main_osaa-data-app.yml` — triggers on push to `main`.
+
+### Railway Security Checklist
+
+Set these Railway variables before going live:
+
+```bash
+APP_PASSWORD_HASH=<output from python scripts/generate_password_hash.py>
+PID_PASSWORD_HASH=<optional separate hash for PID page>
+STREAMLIT_SERVER_COOKIE_SECRET=<long random secret>
+```
+
+Recommended:
+
+- Do not set `app_password` or `pid_password` in production unless you are using them temporarily during migration.
+- Keep Railway deployment public only behind HTTPS and share the password out-of-band.
+- Rotate the password immediately if it is shared in chat, email, screenshots, or logs.
+- Use Railway variables or a secrets manager for API keys; never bake secrets into the image.
+- Limit Railway team/project access to only the people who need deploy access.
+- The Docker build now excludes `.env` and `.streamlit/secrets.toml`, so keep production secrets in Railway variables only.
+- On Railway, set `APP_ENV=production` so the app refuses plaintext passwords and missing cookie secrets at startup.
+
+### Secret Rotation
+
+If any real API keys or passwords have ever been pasted into chat, screenshots, Git history, shell history, or a shared `.env`, treat them as compromised and rotate them with the provider.
+
+### Password Hash Generation
+
+Generate a strong password hash locally:
+
+```bash
+python scripts/generate_password_hash.py
+```
+
+The script prints a random password and a matching `APP_PASSWORD_HASH` value that you can paste into Railway.
 
 ## Documentation
 

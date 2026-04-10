@@ -1,4 +1,10 @@
-"""Reusable chart and map components."""
+"""Reusable chart and map components.
+
+Provides Plotly-based chart and choropleth-map rendering functions used across
+multiple dashboard pages.  Charts accept a ``pd.DataFrame`` plus display
+parameters and return a Plotly figure or render directly via ``st.plotly_chart``.
+Key exports: ``render_choropleth``, ``render_line_chart``, ``render_bar_chart``.
+"""
 
 from __future__ import annotations
 
@@ -26,7 +32,8 @@ def show_time_series(
         )
         st.plotly_chart(fig, use_container_width=True)
     except Exception as exc:
-        st.error(f"Error generating time-series chart: {exc}")
+        logger.exception("Error generating time-series chart")
+        st.error("Could not render the chart.")
 
 
 def show_choropleth(
@@ -49,7 +56,8 @@ def show_choropleth(
         )
         st.plotly_chart(fig)
     except Exception as exc:
-        st.error(f"Error generating map: {exc}")
+        logger.exception("Error generating choropleth map")
+        st.error("Could not render the map.")
 
 
 def show_data_availability_heatmap(df: pd.DataFrame) -> None:
@@ -70,4 +78,5 @@ def show_data_availability_heatmap(df: pd.DataFrame) -> None:
         fig.update_layout(height=600)
         st.plotly_chart(fig, use_container_width=True)
     except Exception as exc:
-        st.error(f"Error creating heatmap: {exc}")
+        logger.exception("Error generating availability heatmap")
+        st.error("Could not render the heatmap.")

@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSAA SMU Data App | Interactive Global UN Briefing</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink-1: #0b1220;
+  --ink-2: #1d2a3f;
+  --ink-3: #344563;
+  --muted: #6b778c;
+  --bg: #f2f5f9;
+  --card: #ffffff;
+  --line: #d6dde8;
+  --brand: #009edb;
+  --brand-2: #41bceb;
+  --accent: #0f766e;
+  --violet: #5b4bdb;
+  --blue: #0f6bcf;
+  --green: #1f9d55;
+  --danger: #d64545;
+  --shadow: 0 10px 30px rgba(13, 25, 45, 0.12);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(1200px 700px at 20% 0%, #223657 0%, #0e1728 45%, #050a14 100%);
+  color: var(--ink-1);
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+}
+
+.deck {
+  width: min(1720px, 100vw);
+  height: 100vh;
+  margin: 0 auto;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 80px rgba(0,0,0,.5);
+}
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #0b2f6b, #0f4c9a);
+  color: #f0f5ff;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+.brand h1 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: .01em; }
+.brand p { font-size: 12px; color: #b9c8df; }
+
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.btn {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: white;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn.dark { background: rgba(255,255,255,.08); color: #f0f5ff; border-color: rgba(255,255,255,.2); }
+.btn.brand { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: white; }
+
+.layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 64px); }
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  background: #f8fbff;
+  padding: 14px;
+  overflow-y: auto;
+}
+.sidebar h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+}
+.agenda { display: flex; flex-direction: column; gap: 7px; }
+.agenda button {
+  text-align: left;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--ink-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+.agenda button.active { border-color: var(--brand); background: #eef7ff; box-shadow: inset 0 0 0 1px rgba(0,158,219,.15); }
+.sidebar .note {
+  margin-top: 14px;
+  background: linear-gradient(160deg, #eef6ff, #f7fbff);
+  border: 1px solid #b8d7f4;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 12px;
+  color: #1f4f81;
+  line-height: 1.5;
+}
+
+.main { position: relative; overflow: hidden; }
+.slides { width: 100%; height: 100%; position: relative; }
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  padding: 24px 34px 32px;
+  overflow: auto;
+}
+.slide.active { display: block; animation: slideIn .3s ease; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+
+.kicker { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--brand); font-weight: 700; }
+.slide h2 { font-family: 'Space Grotesk', sans-serif; color: var(--ink-1); font-size: 34px; line-height: 1.1; margin-top: 4px; }
+.sub { margin-top: 8px; color: var(--muted); font-size: 16px; max-width: 980px; line-height: 1.55; }
+
+.grid-2 { display: grid; grid-template-columns: 1.08fr .92fr; gap: 16px; margin-top: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
+.stat-strip {
+  margin-top: 16px;
+  background: linear-gradient(135deg, #162840, #0f1b2f);
+  border-radius: 14px;
+  padding: 14px;
+  color: white;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+.stat-box {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 10px;
+  text-align: center;
+  padding: 10px 8px;
+}
+.stat-box .n { font-family: 'Space Grotesk'; font-size: 22px; font-weight: 700; }
+.stat-box .l { font-size: 11px; color: #d9e4f6; margin-top: 2px; }
+
+.list { margin-top: 8px; display: grid; gap: 8px; }
+.list .row {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 10px 11px;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.list .icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+}
+.list b { font-size: 13px; color: var(--ink-2); }
+.list p { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+
+.pill-row { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  background: #eef5ff;
+  color: var(--ink-2);
+  border: 1px solid #c9dbf7;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pipeline { margin-top: 14px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.step {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 128px;
+  position: relative;
+}
+.step .num {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.step h4 { font-size: 13px; margin-top: 10px; color: var(--ink-2); }
+.step p { font-size: 12px; margin-top: 6px; color: var(--muted); line-height: 1.45; }
+
+.connector { width: 100%; height: 36px; margin-top: 6px; }
+
+.arch-wrap { margin-top: 16px; display: grid; grid-template-columns: 330px 1fr; gap: 14px; }
+.layer-list { display: grid; gap: 8px; }
+.layer-btn {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  padding: 10px;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+.layer-btn.active { border-color: var(--blue); background: #edf5ff; }
+.layer-btn b { display: block; color: var(--ink-2); }
+.layer-btn span { color: var(--muted); font-size: 12px; }
+
+.arch-panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+.arch-map {
+  width: 100%;
+  height: 252px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #f9fcff, #f3f8ff);
+}
+.arch-meta { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.meta {
+  border: 1px solid var(--line);
+  background: #fbfdff;
+  border-radius: 10px;
+  padding: 8px;
+}
+.meta b { font-size: 12px; color: var(--ink-2); }
+.meta p { margin-top: 4px; font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+.filter-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip.active { background: #fff1e7; border-color: #ffb98b; color: #8c3a03; }
+
+.modules {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.module {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: white;
+}
+.module h4 { font-size: 13px; color: var(--ink-2); }
+.module p { margin-top: 5px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.module .tag { margin-top: 8px; font-size: 10px; color: #31455f; }
+
+.timeline { margin-top: 16px; display: grid; gap: 10px; }
+.milestone {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  padding: 10px;
+}
+.milestone .time {
+  border-radius: 8px;
+  background: linear-gradient(135deg, #eef4ff, #dce9ff);
+  color: #114989;
+  display: grid;
+  place-items: center;
+  font-family: 'Space Grotesk';
+  font-weight: 700;
+  font-size: 14px;
+}
+.milestone h4 { font-size: 13px; color: var(--ink-2); }
+.milestone p { margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+.cost-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.cost-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cost-head {
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.cost-body { padding: 10px 12px; }
+.cost-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.cost-row:last-child { border-bottom: 0; }
+.total {
+  margin-top: 8px;
+  border-top: 2px solid var(--line);
+  padding-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.install-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.code-block {
+  margin-top: 8px;
+  background: #0f1b2f;
+  color: #d9e7ff;
+  border: 1px solid #2b456b;
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.qr-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.qr-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--shadow);
+  padding: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.qr-card img {
+  width: 100%;
+  max-width: 190px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  padding: 6px;
+}
+.qr-card h4 { margin-top: 10px; font-size: 14px; color: var(--ink-2); }
+.qr-card p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+
+.footer-nav { position: absolute; right: 16px; bottom: 12px; display: flex; gap: 8px; }
+.nav-btn {
+  background: #0f1b2f;
+  color: white;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: 0;
+  background: linear-gradient(90deg, var(--brand), var(--blue), var(--accent));
+}
+.counter {
+  position: absolute;
+  left: 300px;
+  bottom: 12px;
+  background: #0f1b2f;
+  color: #f4f8ff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+}
+
+.reveal { opacity: 0; transform: translateY(8px); transition: all .35s ease; }
+.slide.active .reveal { opacity: 1; transform: translateY(0); }
+.slide.active .reveal.r2 { transition-delay: .07s; }
+.slide.active .reveal.r3 { transition-delay: .14s; }
+.slide.active .reveal.r4 { transition-delay: .21s; }
+
+@media (max-width: 1320px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .counter { left: 14px; }
+  .grid-2, .grid-3, .pipeline, .arch-wrap, .modules, .cost-grid, .install-grid, .qr-grid { grid-template-columns: 1fr; }
+  .stat-strip { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge">UN</div>
+      <div>
+        <h1>OSAA SMU Data App</h1>
+        <p>UN system briefing | AI for evidence retrieval, analysis, and policy communication</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn dark" id="jumpAgenda">Agenda</button>
+      <button class="btn dark" id="toggleTheme">Contrast</button>
+      <button class="btn brand" id="fullscreenBtn">Fullscreen</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar" id="agendaPanel">
+      <h3>Presentation Agenda</h3>
+      <div class="agenda" id="agendaButtons"></div>
+      <div class="note">
+        Focus for UN colleagues: AI-enabled data retrieval, data-chat analysis,
+        prompt-based visualization, and rapid hypothesis testing for policy workflows.
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="slides" id="slides">
+
+        <section class="slide active" data-title="01 | Why this platform matters">
+          <div class="kicker reveal">Executive Summary</div>
+          <h2 class="reveal r2">From policy question to tested evidence in minutes.</h2>
+          <p class="sub reveal r3">The SMU Data App connects frequently used UN-relevant data sources with AI-guided analysis so teams can retrieve data, test hypotheses, and communicate findings without coding.</p>
+
+          <div class="stat-strip reveal r4">
+            <div class="stat-box"><div class="n">10+</div><div class="l">Operational Modules</div></div>
+            <div class="stat-box"><div class="n">6</div><div class="l">Live Data APIs</div></div>
+            <div class="stat-box"><div class="n">1,000+</div><div class="l">Indicators</div></div>
+            <div class="stat-box"><div class="n">8+</div><div class="l">LLM Choices</div></div>
+            <div class="stat-box"><div class="n">Minutes</div><div class="l">Hypothesis Cycle</div></div>
+          </div>
+
+          <div class="grid-2" style="margin-top:16px;">
+            <div class="card reveal r3">
+              <div class="list">
+                <div class="row"><div class="icon">A</div><div><b>Find data with natural language</b><p>Ask: “GDP and conflict trend for Algeria 2005–2024”.</p></div></div>
+                <div class="row"><div class="icon">B</div><div><b>Analyze by chatting with data</b><p>Get trend, correlation, lag, and caveat-aware interpretation.</p></div></div>
+                <div class="row"><div class="icon">C</div><div><b>Create visuals with prompts</b><p>Generate policy-ready charts and export datasets immediately.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r4" style="background:linear-gradient(155deg,#11213a,#152a49); color:white; border-color:#203b63;">
+              <h3 style="font-family:'Space Grotesk'; font-size:18px;">UN System Value Proposition</h3>
+              <p style="margin-top:8px; color:#d8e4f6; line-height:1.6; font-size:14px;">Turn frequently used datasets into one coherent, explainable workflow supporting Agenda 2030 monitoring, policy briefs, and country/regional analysis with traceable evidence.</p>
+              <div class="pill-row" style="margin-top:12px;">
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Evidence Speed</span>
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Cross-source Depth</span>
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Quality Guardrails</span>
+                <span class="pill" style="background:#1b3558;border-color:#365a87;color:#e4efff;">Agenda 2030 Alignment</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="02 | Problem to Opportunity">
+          <div class="kicker">Policy Analytics Challenge</div>
+          <h2>Why traditional workflows break at speed</h2>
+          <p class="sub">Many teams still switch across portals, manually align indicators, and rebuild charts repeatedly. This slows analysis for briefs to Member States and weakens consistency across outputs.</p>
+
+          <div class="grid-3">
+            <div class="card reveal"><h3 style="color:var(--danger)">Current Pain</h3><div class="list" style="margin-top:8px;">
+              <div class="row"><div class="icon" style="background:var(--danger)">!</div><div><b>Fragmented data access</b><p>Multiple APIs and interfaces for one story.</p></div></div>
+              <div class="row"><div class="icon" style="background:var(--danger)">!</div><div><b>Manual joins</b><p>Country/year alignment done repeatedly.</p></div></div>
+              <div class="row"><div class="icon" style="background:var(--danger)">!</div><div><b>Slow hypothesis testing</b><p>Difficult to iterate quickly on policy questions.</p></div></div>
+            </div></div>
+            <div class="card reveal r2"><h3 style="color:var(--blue)">AI-Enabled Shift</h3><div class="list" style="margin-top:8px;">
+              <div class="row"><div class="icon" style="background:var(--blue)">+</div><div><b>Unified retrieval</b><p>One query routes to the right datasets.</p></div></div>
+              <div class="row"><div class="icon" style="background:var(--blue)">+</div><div><b>Assisted reasoning</b><p>AI suggests metrics and warns on weak coverage.</p></div></div>
+              <div class="row"><div class="icon" style="background:var(--blue)">+</div><div><b>Prompted visualization</b><p>Faster communication of findings.</p></div></div>
+            </div></div>
+            <div class="card reveal r3"><h3 style="color:var(--green)">Outcome</h3><div class="list" style="margin-top:8px;">
+              <div class="row"><div class="icon" style="background:var(--green)">•</div><div><b>Minutes, not days</b><p>Rapid evidence generation for briefs.</p></div></div>
+              <div class="row"><div class="icon" style="background:var(--green)">•</div><div><b>Better comparability</b><p>Cross-source analysis becomes practical.</p></div></div>
+              <div class="row"><div class="icon" style="background:var(--green)">•</div><div><b>Higher trust</b><p>Diagnostics + source transparency built in.</p></div></div>
+            </div></div>
+          </div>
+
+          <div class="card reveal r4" style="margin-top:14px;">
+            <div style="display:grid;grid-template-columns:1fr 70px 1fr 70px 1fr;gap:8px;align-items:center;">
+              <div style="border:1px solid #f0b7b7;background:#fff4f4;border-radius:10px;padding:10px;text-align:center;">
+                <div style="font-weight:700;color:#9f2f2f;font-size:13px;">Manual Retrieval</div>
+                <div style="font-size:12px;color:#7c4a4a;margin-top:3px;">Fragmented portals and repeated wrangling</div>
+              </div>
+              <div style="text-align:center;font-size:22px;color:#d9822b;font-weight:700;">→</div>
+              <div style="border:1px solid #ffd1ad;background:#fff7ef;border-radius:10px;padding:10px;text-align:center;">
+                <div style="font-weight:700;color:#9a4a0a;font-size:13px;">AI-Assisted Workflow</div>
+                <div style="font-size:12px;color:#7b5a40;margin-top:3px;">Prompted retrieval, guided analysis, quality checks</div>
+              </div>
+              <div style="text-align:center;font-size:22px;color:#3a9b5f;font-weight:700;">→</div>
+              <div style="border:1px solid #b6e4c8;background:#f1fdf5;border-radius:10px;padding:10px;text-align:center;">
+                <div style="font-weight:700;color:#1b7a45;font-size:13px;">Tested Insight</div>
+                <div style="font-size:12px;color:#3f6e53;margin-top:3px;">Decision-ready outputs in minutes</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="03 | AI Workflow and Hypothesis Loop">
+          <div class="kicker">Core Capability</div>
+          <h2>AI workflow for hypothesis testing in minutes</h2>
+          <p class="sub">This is the key contribution: frame a hypothesis, fetch the right data live, test relationships, and revise instantly if data quality is weak.</p>
+
+          <div class="pipeline">
+            <div class="step reveal"><div class="num">1</div><h4>Define Hypothesis</h4><p>Example: “Higher conflict correlates with lower GDP growth”.</p></div>
+            <div class="step reveal r2"><div class="num">2</div><h4>Plan Metrics</h4><p>LLM + rules map query to series IDs and scope (country/region).</p></div>
+            <div class="step reveal r2"><div class="num">3</div><h4>Fetch Data Live</h4><p>Cache-first retrieval from WB, ACLED, SDG, UIS, UN Data APIs.</p></div>
+            <div class="step reveal r3"><div class="num">4</div><h4>Test + Diagnose</h4><p>Correlation/trend checks with overlap and sparse-data warnings.</p></div>
+            <div class="step reveal r4"><div class="num">5</div><h4>Visualize + Iterate</h4><p>Prompt chart updates and re-run revised assumptions quickly.</p></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card reveal r3">
+              <h3 style="color:var(--blue)">Interactive hypothesis cycle</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--blue)">H</div><div><b>State hypothesis</b><p>Directly in natural language, no scripting needed.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">T</div><div><b>Test with joined data</b><p>Automatic merge by ISO mapping and year keys.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">R</div><div><b>Refine and retest</b><p>Suggested proxies/date shifts when data is missing.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r4">
+              <h3 style="color:var(--accent)">Example prompt chain</h3>
+              <p style="margin-top:8px;color:var(--muted);font-size:13px;line-height:1.55;">1) “For Algeria 2005–2024 compare conflict events and GDP.”<br>2) “Now test lag of 1–3 years and show robustness without outlier years.”<br>3) “Create a policy-brief chart with caution notes.”</p>
+              <div class="pill-row">
+                <span class="pill">Data retrieval</span>
+                <span class="pill">Data chat analysis</span>
+                <span class="pill">Visualization prompts</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="04 | Architecture and Tools">
+          <div class="kicker">Architecture</div>
+          <h2>How Python, Streamlit, DuckDB, and LLMs work together</h2>
+          <p class="sub">Click a layer to explain its role in reliability, speed, and maintainability.</p>
+
+          <div class="arch-wrap">
+            <div class="layer-list">
+              <button class="layer-btn active" data-layer="ui"><b>Presentation + Interaction</b><span>Streamlit pages, controls, visualizations</span></button>
+              <button class="layer-btn" data-layer="orchestration"><b>Planning + Orchestration</b><span>Python services for query plans and execution</span></button>
+              <button class="layer-btn" data-layer="data"><b>Data Connectors</b><span>World Bank, ACLED, SDG, UIS, UN Data APIs</span></button>
+              <button class="layer-btn" data-layer="storage"><b>Storage + Cache</b><span>DuckDB metadata, cache tables, materialized results</span></button>
+              <button class="layer-btn" data-layer="ai"><b>AI Layer</b><span>LLM selection, assistant guidance, quality-safe prompts</span></button>
+            </div>
+
+            <div class="arch-panel">
+              <svg class="arch-map" viewBox="0 0 900 320">
+                <rect id="node-ui" x="50" y="20" width="800" height="48" rx="10" fill="#e8f1ff" stroke="#a5c2ee"/>
+                <text x="70" y="50" font-size="16" fill="#0f3c79" font-family="Space Grotesk">Streamlit UI Pages</text>
+
+                <rect id="node-orchestration" x="80" y="92" width="740" height="52" rx="10" fill="#fff4eb" stroke="#ffc499"/>
+                <text x="100" y="124" font-size="16" fill="#8a3a03" font-family="Space Grotesk">Python Services (planner, execution, sync, diagnostics)</text>
+
+                <rect id="node-ai" x="120" y="168" width="320" height="52" rx="10" fill="#efeaff" stroke="#c8b8ff"/>
+                <text x="138" y="200" font-size="16" fill="#4737b7" font-family="Space Grotesk">LLM Layer (reasoning + assistant)</text>
+
+                <rect id="node-data" x="470" y="168" width="340" height="52" rx="10" fill="#e9faf3" stroke="#9fdfc0"/>
+                <text x="490" y="200" font-size="16" fill="#15673e" font-family="Space Grotesk">API Connectors (WB, ACLED, SDG, UIS, UN Data)</text>
+
+                <rect id="node-storage" x="250" y="244" width="420" height="56" rx="10" fill="#f4f7fb" stroke="#c7d5e8"/>
+                <text x="270" y="277" font-size="16" fill="#243a56" font-family="Space Grotesk">DuckDB Cache + Metadata + Refresh Logs</text>
+
+                <line x1="450" y1="68" x2="450" y2="92" stroke="#6f8bb5" stroke-width="3"/>
+                <line x1="260" y1="144" x2="260" y2="168" stroke="#6f8bb5" stroke-width="3"/>
+                <line x1="640" y1="144" x2="640" y2="168" stroke="#6f8bb5" stroke-width="3"/>
+                <line x1="280" y1="220" x2="360" y2="244" stroke="#6f8bb5" stroke-width="3"/>
+                <line x1="640" y1="220" x2="560" y2="244" stroke="#6f8bb5" stroke-width="3"/>
+              </svg>
+
+              <div class="arch-meta">
+                <div class="meta"><b>Language</b><p>Python orchestrates fetching, joining, diagnostics, and export logic.</p></div>
+                <div class="meta"><b>Framework</b><p>Streamlit enables rapid interaction for analysts and policy teams.</p></div>
+                <div class="meta"><b>Database</b><p>DuckDB enables local analytics-grade cache and metadata storage.</p></div>
+              </div>
+              <p id="layerText" style="margin-top:10px; font-size:12px; color:var(--muted); line-height:1.55;">UI layer selected: users work through guided pages, scenario shortcuts, quality diagnostics, and exports without writing code.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="05 | Modules and Interactions">
+          <div class="kicker">Capability Map</div>
+          <h2>Modules aligned to UN analytical tasks</h2>
+          <p class="sub">Click filters to view the module landscape by purpose.</p>
+
+          <div class="filter-row" id="moduleFilters">
+            <button class="chip active" data-filter="all">All</button>
+            <button class="chip" data-filter="core">Core Data</button>
+            <button class="chip" data-filter="cross">Cross-Source + AI</button>
+            <button class="chip" data-filter="governance">Governance Tools</button>
+          </div>
+
+          <div class="modules" id="moduleGrid">
+            <article class="module" data-group="core"><h4>World Bank + SDG + ACLED Dashboards</h4><p>Direct retrieval and exploration of commonly used UN policy datasets.</p><div class="tag">Group: Core Data</div></article>
+            <article class="module" data-group="cross"><h4>Cross-Source Studio</h4><p>Natural-language cross-source joins with diagnostics and revisions.</p><div class="tag">Group: Cross-Source + AI</div></article>
+            <article class="module" data-group="cross"><h4>Hybrid Sync</h4><p>Metadata refresh + missing-only sync + update log visibility.</p><div class="tag">Group: Cross-Source + AI</div></article>
+            <article class="module" data-group="governance"><h4>Contradictory Analysis Checker</h4><p>Reduces publication inconsistency and narrative conflict risk.</p><div class="tag">Group: Governance Tools</div></article>
+            <article class="module" data-group="governance"><h4>PID Checker + Chat Library</h4><p>Improves process quality and reusability of institutional analysis.</p><div class="tag">Group: Governance Tools</div></article>
+            <article class="module" data-group="core"><h4>Custom Data Explorer</h4><p>Upload datasets, chat with data, and generate visual outputs rapidly.</p><div class="tag">Group: Core Data</div></article>
+          </div>
+        </section>
+
+        <section class="slide" data-title="06 | Cross-Source and Hypothesis Testing">
+          <div class="kicker">Demonstration Value</div>
+          <h2>Cross-source analysis that supports real hypothesis testing</h2>
+          <p class="sub">This module answers questions that normally require multiple tools and manual joins.</p>
+
+          <div class="grid-2">
+            <div class="card reveal">
+              <h3 style="color:var(--violet)">Example hypothesis</h3>
+              <p style="margin-top:8px;color:var(--muted);font-size:13px;line-height:1.55;">“In countries with rising conflict events, GDP growth and electricity access weaken over time.”</p>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--violet)">1</div><div><b>Select country or region</b><p>Country, sub-region, or all-regions scope.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--violet)">2</div><div><b>Fetch indicators</b><p>ACLED conflict events + WB/SDG development metrics.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--violet)">3</div><div><b>Test relationship</b><p>Trend, correlation, lag, and outlier checks.</p></div></div>
+              </div>
+            </div>
+
+            <div class="card reveal r2">
+              <h3 style="color:var(--accent)">AI guidance behavior</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--accent)">D</div><div><b>Data gap detection</b><p>If points are insufficient, user receives caution + alternatives.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--accent)">S</div><div><b>Suggested substitutes</b><p>Proxy indicators or revised date ranges are proposed.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--accent)">E</div><div><b>Explainability</b><p>Source list and diagnostics are visible with each run.</p></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal r3" style="margin-top:12px;">
+            <svg viewBox="0 0 1200 210" style="width:100%;height:180px;">
+              <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#446b98"></path></marker></defs>
+              <rect x="20" y="70" width="170" height="70" rx="12" fill="#edf5ff" stroke="#a9c3eb"></rect>
+              <text x="42" y="108" font-size="15" fill="#13427f" font-family="Space Grotesk">Hypothesis Query</text>
+              <rect x="260" y="55" width="230" height="100" rx="12" fill="#fff4eb" stroke="#ffc499"></rect>
+              <text x="295" y="95" font-size="15" fill="#8f3a04" font-family="Space Grotesk">Planner + Indicator Map</text>
+              <text x="290" y="118" font-size="12" fill="#8f3a04">Scope + join keys + date window</text>
+              <rect x="540" y="25" width="280" height="70" rx="12" fill="#ecfff5" stroke="#99ddb9"></rect>
+              <text x="575" y="67" font-size="15" fill="#0f6a3f" font-family="Space Grotesk">Live APIs (if cache misses)</text>
+              <rect x="540" y="115" width="280" height="70" rx="12" fill="#f1f4f8" stroke="#c1cfdf"></rect>
+              <text x="603" y="157" font-size="15" fill="#2b415f" font-family="Space Grotesk">DuckDB cache</text>
+              <rect x="870" y="55" width="310" height="100" rx="12" fill="#f0ebff" stroke="#b9aaff"></rect>
+              <text x="906" y="95" font-size="16" fill="#4a39b9" font-family="Space Grotesk">Analysis + Visualization</text>
+              <text x="900" y="118" font-size="12" fill="#4a39b9">Correlation, caveats, export</text>
+              <line x1="190" y1="105" x2="260" y2="105" stroke="#446b98" stroke-width="3" marker-end="url(#arrow)"></line>
+              <line x1="490" y1="85" x2="540" y2="60" stroke="#446b98" stroke-width="3" marker-end="url(#arrow)"></line>
+              <line x1="490" y1="125" x2="540" y2="150" stroke="#446b98" stroke-width="3" marker-end="url(#arrow)"></line>
+              <line x1="820" y1="60" x2="870" y2="85" stroke="#446b98" stroke-width="3" marker-end="url(#arrow)"></line>
+              <line x1="820" y1="150" x2="870" y2="125" stroke="#446b98" stroke-width="3" marker-end="url(#arrow)"></line>
+            </svg>
+          </div>
+        </section>
+
+        <section class="slide" data-title="07 | Reliability and Governance">
+          <div class="kicker">Trust and Risk Management</div>
+          <h2>Responsible AI analytics by design</h2>
+          <p class="sub">Speed is valuable only if outputs are trustworthy. The app enforces source visibility, quality checks, and operational logging to support UN evidence standards.</p>
+
+          <div class="grid-3">
+            <div class="card reveal"><h3 style="color:var(--blue)">Traceability</h3><p style="margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6;">Each result lists source and series used, supporting review and citation.</p></div>
+            <div class="card reveal r2"><h3 style="color:var(--violet)">Data quality signals</h3><p style="margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6;">Coverage gaps are surfaced automatically with “revise query” options.</p></div>
+            <div class="card reveal r3"><h3 style="color:var(--green)">Operational logs</h3><p style="margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6;">Hybrid Sync keeps update records by source, status, and indicator counts.</p></div>
+          </div>
+
+          <div class="card reveal r4" style="margin-top:14px;">
+            <h3 style="color:var(--ink-2)">Suggested operating cadence</h3>
+            <div class="timeline">
+              <div class="milestone"><div class="time">Daily</div><div><h4>Analyst use</h4><p>Run cross-source queries, chart, and export for briefs and meetings.</p></div></div>
+              <div class="milestone"><div class="time">Weekly</div><div><h4>Hybrid sync</h4><p>Refresh metadata + missing data for priority indicators and scopes.</p></div></div>
+              <div class="milestone"><div class="time">Monthly</div><div><h4>Governance review</h4><p>Review logs, stale ranges, and scenario quality benchmarks.</p></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="08 | Case Scenario: World Bank">
+          <div class="kicker">Use Case Scenario</div>
+          <h2>World Bank scenario for macroeconomic policy dialogue</h2>
+          <p class="sub">Illustrative briefing workflow for Member States: retrieve comparable macro indicators, identify trend breaks, and generate policy-ready visuals.</p>
+
+          <div class="grid-2">
+            <div class="card reveal">
+              <h3 style="color:var(--blue)">Scenario prompt</h3>
+              <div class="code-block" style="margin-top:8px;">"Show GDP growth, inflation, and unemployment trends for selected African countries from 2010 to latest year, compare pre/post major shocks, and highlight outliers."</div>
+              <div class="list" style="margin-top:10px;">
+                <div class="row"><div class="icon" style="background:var(--blue)">1</div><div><b>Source</b><p>World Bank indicators API (country-year panel).</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">2</div><div><b>Analysis</b><p>Trend comparisons, growth-rate shifts, cross-country benchmarking.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">3</div><div><b>Output</b><p>Charts and concise narrative points for briefing notes.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:var(--accent)">Decision-support value</h3>
+              <div class="pill-row">
+                <span class="pill">Country comparison</span>
+                <span class="pill">Time-series evidence</span>
+                <span class="pill">Reproducible indicators</span>
+              </div>
+              <p style="margin-top:10px;font-size:13px;color:var(--muted);line-height:1.6;">Useful for macroeconomic context sections in speeches, policy briefs, and intergovernmental dialogue where quick evidence retrieval is required.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="09 | Case Scenario: SDG">
+          <div class="kicker">Use Case Scenario</div>
+          <h2>SDG scenario for Agenda 2030 progress tracking</h2>
+          <p class="sub">Use the SDG module to review indicator trajectories, identify lagging areas, and support targeted policy recommendations.</p>
+
+          <div class="grid-2">
+            <div class="card reveal">
+              <h3 style="color:var(--blue)">Scenario prompt</h3>
+              <div class="code-block" style="margin-top:8px;">"For selected African countries, show SDG 7.1.1, SDG 3.2.1, and SDG 1.1.1 trends from 2015 onward. Identify countries off-track and suggest where acceleration is needed."</div>
+              <div class="list" style="margin-top:10px;">
+                <div class="row"><div class="icon" style="background:var(--blue)">1</div><div><b>Source</b><p>UN SDG API with country and year filtering.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">2</div><div><b>Analysis</b><p>Progress trajectories, gap detection, and regional comparison.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">3</div><div><b>Output</b><p>Agenda 2030 narrative with clear indicator-based evidence.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:var(--accent)">Decision-support value</h3>
+              <div class="pill-row">
+                <span class="pill">Agenda 2030 lens</span>
+                <span class="pill">Progress monitoring</span>
+                <span class="pill">Priority targeting</span>
+              </div>
+              <p style="margin-top:10px;font-size:13px;color:var(--muted);line-height:1.6;">Supports evidence-backed discussion on where policy action and resource allocation may need recalibration across SDG domains.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="10 | Case Scenario: Cross-Platform">
+          <div class="kicker">Use Case Scenario</div>
+          <h2>Cross-platform scenario for multidimensional policy analysis</h2>
+          <p class="sub">The cross-source module combines development and conflict indicators to test complex hypotheses quickly in one workflow.</p>
+
+          <div class="grid-2">
+            <div class="card reveal">
+              <h3 style="color:var(--blue)">Scenario prompt</h3>
+              <div class="code-block" style="margin-top:8px;">"For Algeria and peer countries, test whether conflict event intensity (ACLED) correlates with GDP per capita and electricity access (World Bank) from 2005 to latest year. Show lag effects and data caveats."</div>
+              <div class="list" style="margin-top:10px;">
+                <div class="row"><div class="icon" style="background:var(--blue)">1</div><div><b>Sources</b><p>ACLED + World Bank, joined by year and standardized geocodes.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">2</div><div><b>Analysis</b><p>Correlation, lag checks, overlap diagnostics, sensitivity checks.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">3</div><div><b>Output</b><p>Integrated dataset, policy visuals, and caveat-ready interpretation.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:var(--accent)">Decision-support value</h3>
+              <div class="pill-row">
+                <span class="pill">Multi-source evidence</span>
+                <span class="pill">Hypothesis testing</span>
+                <span class="pill">Minutes-to-insight</span>
+              </div>
+              <p style="margin-top:10px;font-size:13px;color:var(--muted);line-height:1.6;">Enables integrated policy narratives that move beyond single-source interpretation, with transparent warnings when data coverage is weak.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="11 | Cost Calculation">
+          <div class="kicker">Cost and Deployment Options</div>
+          <h2>Indicative monthly cost profile</h2>
+          <p class="sub">For many teams, local-first deployment with Ollama can significantly reduce recurring costs while preserving core functionality.</p>
+
+          <div class="cost-grid">
+            <div class="cost-card reveal">
+              <div class="cost-head" style="background:#eef5ff;color:#124987;">Cloud-heavy (managed LLM APIs)</div>
+              <div class="cost-body">
+                <div class="cost-row"><span>Compute + hosting</span><span>$90</span></div>
+                <div class="cost-row"><span>External LLM usage</span><span>$160</span></div>
+                <div class="cost-row"><span>Storage + logging</span><span>$35</span></div>
+                <div class="cost-row"><span>Ops overhead</span><span>$40</span></div>
+                <div class="total"><span>Estimated total</span><span>$325 / month</span></div>
+              </div>
+            </div>
+
+            <div class="cost-card reveal r2">
+              <div class="cost-head" style="background:#fff4eb;color:#8c3a03;">Hybrid (cloud + local Ollama)</div>
+              <div class="cost-body">
+                <div class="cost-row"><span>Compute + hosting</span><span>$70</span></div>
+                <div class="cost-row"><span>Selective LLM API calls</span><span>$45</span></div>
+                <div class="cost-row"><span>Local inference (Ollama)</span><span>$0</span></div>
+                <div class="cost-row"><span>Storage + logging</span><span>$25</span></div>
+                <div class="total"><span>Estimated total</span><span>$140 / month</span></div>
+              </div>
+            </div>
+
+            <div class="cost-card reveal r3">
+              <div class="cost-head" style="background:#ecfff5;color:#0f6a3f;">Local-first (GitHub + Ollama)</div>
+              <div class="cost-body">
+                <div class="cost-row"><span>App runtime (local machine)</span><span>$0</span></div>
+                <div class="cost-row"><span>Ollama local model</span><span>$0</span></div>
+                <div class="cost-row"><span>DuckDB local storage</span><span>$0</span></div>
+                <div class="cost-row"><span>Optional cloud backup</span><span>$10</span></div>
+                <div class="total"><span>Estimated total</span><span>$0–10 / month</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal r4" style="margin-top:12px;">
+            <h3 style="color:var(--ink-2)">Practical recommendation</h3>
+            <p style="margin-top:8px;color:var(--muted);font-size:13px;line-height:1.6;">Use hybrid mode by default: local Ollama for routine query planning/analysis and cloud models only when higher reasoning quality is required for high-stakes outputs.</p>
+          </div>
+        </section>
+
+        <section class="slide" data-title="12 | Local Hosting with GitHub + Ollama">
+          <div class="kicker">Implementation Guide</div>
+          <h2>How to run locally for free (GitHub + Ollama)</h2>
+          <p class="sub">This setup is ideal for demonstrations, prototypes, and cost-controlled deployments.</p>
+
+          <div class="install-grid">
+            <div class="card reveal">
+              <h3 style="color:var(--blue)">Step-by-step setup</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--blue)">1</div><div><b>Clone repo</b><p>Pull the latest code from GitHub.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">2</div><div><b>Create virtual env</b><p>Install dependencies from requirements.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">3</div><div><b>Install and run Ollama</b><p>Download local model and keep service running.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">4</div><div><b>Configure .env</b><p>Point LLM endpoint to local Ollama, add API keys for data sources.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">5</div><div><b>Run Streamlit app</b><p>Launch and verify Cross-Source + Hybrid Sync pages.</p></div></div>
+              </div>
+            </div>
+
+            <div class="card reveal r2">
+              <h3 style="color:var(--accent)">Command reference</h3>
+              <div class="code-block">git clone &lt;your-repo-url&gt;
+cd osaa-smu-data-app-prod
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# install ollama from https://ollama.com/download
+ollama pull llama3.1:8b
+ollama serve
+
+# in .env (example)
+# LLM_PROVIDER=ollama
+# OLLAMA_BASE_URL=http://localhost:11434
+# OLLAMA_MODEL=llama3.1:8b
+
+streamlit run app/main.py</div>
+              <p style="margin-top:8px;font-size:12px;color:var(--muted);line-height:1.5;">For production, add reverse proxy, auth, and scheduled sync runs.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-title="13 | Demonstration Script">
+          <div class="kicker">Live Demo Plan</div>
+          <h2>Suggested 10-minute demonstration sequence</h2>
+          <p class="sub">The sequence is optimized for global colleagues: value first, mechanics second, governance last.</p>
+
+          <div class="grid-2">
+            <div class="card reveal">
+              <h3 style="color:var(--brand)">Part A: AI workflow in action</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon">1</div><div><b>Cross-Source query</b><p>Show one country case with trend + correlation output.</p></div></div>
+                <div class="row"><div class="icon">2</div><div><b>Hypothesis retest</b><p>Adjust years or indicators using revise actions.</p></div></div>
+                <div class="row"><div class="icon">3</div><div><b>Prompt visualization</b><p>Create a policy-friendly chart narrative quickly.</p></div></div>
+              </div>
+            </div>
+            <div class="card reveal r2">
+              <h3 style="color:var(--blue)">Part B: operations and trust</h3>
+              <div class="list" style="margin-top:8px;">
+                <div class="row"><div class="icon" style="background:var(--blue)">4</div><div><b>Hybrid Sync page</b><p>Run metadata refresh + missing-only data sync.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">5</div><div><b>Show availability dashboard</b><p>Demonstrate source/indicator coverage at a glance.</p></div></div>
+                <div class="row"><div class="icon" style="background:var(--blue)">6</div><div><b>Show update logs</b><p>Explain operational accountability and reproducibility.</p></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal r3" style="margin-top:14px; background:linear-gradient(140deg,#0f1b2f,#142a4a); color:white; border-color:#28486f;">
+            <h3 style="font-family:'Space Grotesk'; font-size:20px; color:#f6fbff;">Core message to emphasize</h3>
+            <p style="margin-top:8px; color:#d8e6f9; font-size:14px; line-height:1.65;">"This is not just a dashboard. It is an AI-enabled analytical workflow where UN colleagues can find the right data, test hypotheses with evidence, and produce explainable visuals in minutes with transparent source control."</p>
+          </div>
+        </section>
+
+        <section class="slide" data-title="14 | QR Links and Closing">
+          <div class="kicker">Connect and Continue</div>
+          <h2>Access links and contact points</h2>
+          <p class="sub">Scan the QR codes for repository access, professional profile, and Q&amp;A resources.</p>
+
+          <div class="qr-grid">
+            <div class="qr-card reveal">
+              <img src="images/Github%20QR.png" alt="GitHub QR code">
+              <h4>GitHub Repository</h4>
+              <p>Clone the project and run locally.</p>
+            </div>
+            <div class="qr-card reveal r2">
+              <img src="images/LinkedIn%20QR.png" alt="LinkedIn QR code">
+              <h4>LinkedIn</h4>
+              <p>Professional profile and updates.</p>
+            </div>
+            <div class="qr-card reveal r3">
+              <img src="images/QA%20bar%20code%202.jpg" alt="Q&A QR code">
+              <h4>Q&amp;A / Feedback</h4>
+              <p>Submit questions and collaboration ideas.</p>
+            </div>
+          </div>
+
+          <div class="card reveal r4" style="margin-top:16px; text-align:center; background:#fff5ed; border-color:#ffd1b0;">
+            <h3 style="font-family:'Space Grotesk'; font-size:24px; color:#0b4f8b;">Thank you</h3>
+            <p style="margin-top:8px; font-size:14px; color:#235e92;">UN OSAA Strategic Management Unit | AI-enabled evidence support for policy dialogue</p>
+            <div class="pill-row" style="justify-content:center; margin-top:12px;">
+              <span class="pill">Data discovery</span>
+              <span class="pill">Hypothesis testing</span>
+              <span class="pill">Visualization at speed</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="counter" id="counter">1 / 14</div>
+      <div class="footer-nav">
+        <button class="nav-btn" id="prevBtn" title="Previous">←</button>
+        <button class="nav-btn" id="nextBtn" title="Next">→</button>
+      </div>
+      <div class="progress" id="progress"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const agendaButtonsWrap = document.getElementById('agendaButtons');
+const counter = document.getElementById('counter');
+const progress = document.getElementById('progress');
+let current = 0;
+
+slides.forEach((slide, idx) => {
+  const b = document.createElement('button');
+  b.textContent = slide.dataset.title || `Slide ${idx + 1}`;
+  b.addEventListener('click', () => goTo(idx));
+  agendaButtonsWrap.appendChild(b);
+});
+const agendaButtons = Array.from(agendaButtonsWrap.querySelectorAll('button'));
+
+function render() {
+  slides.forEach((s, i) => s.classList.toggle('active', i === current));
+  agendaButtons.forEach((b, i) => b.classList.toggle('active', i === current));
+  counter.textContent = `${current + 1} / ${slides.length}`;
+  progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+}
+
+function goTo(i) { if (i >= 0 && i < slides.length) { current = i; render(); } }
+function next() { goTo(current + 1); }
+function prev() { goTo(current - 1); }
+
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('prevBtn').addEventListener('click', prev);
+
+document.addEventListener('keydown', (e) => {
+  if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); next(); }
+  if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); prev(); }
+  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+  if (e.key === 'End') { e.preventDefault(); goTo(slides.length - 1); }
+});
+
+const fsBtn = document.getElementById('fullscreenBtn');
+fsBtn.addEventListener('click', async () => {
+  if (!document.fullscreenElement) {
+    await document.documentElement.requestFullscreen();
+    fsBtn.textContent = 'Exit Fullscreen';
+  } else {
+    await document.exitFullscreen();
+    fsBtn.textContent = 'Fullscreen';
+  }
+});
+
+const agendaPanel = document.getElementById('agendaPanel');
+document.getElementById('jumpAgenda').addEventListener('click', () => {
+  const isHidden = getComputedStyle(agendaPanel).display === 'none';
+  if (window.innerWidth <= 1320) {
+    agendaPanel.style.display = isHidden ? 'block' : 'none';
+    agendaPanel.style.position = 'absolute';
+    agendaPanel.style.zIndex = '20';
+    agendaPanel.style.width = '320px';
+    agendaPanel.style.height = 'calc(100% - 64px)';
+    agendaPanel.style.top = '64px';
+    agendaPanel.style.left = '0';
+    agendaPanel.style.boxShadow = '0 18px 35px rgba(0,0,0,.25)';
+  }
+});
+
+const themeBtn = document.getElementById('toggleTheme');
+let highContrast = false;
+themeBtn.addEventListener('click', () => {
+  highContrast = !highContrast;
+  document.documentElement.style.setProperty('--bg', highContrast ? '#e9eef5' : '#f2f5f9');
+  document.documentElement.style.setProperty('--line', highContrast ? '#bec9d8' : '#d6dde8');
+  document.documentElement.style.setProperty('--muted', highContrast ? '#4f5d74' : '#6b778c');
+});
+
+const layerText = document.getElementById('layerText');
+const layerDetails = {
+  ui: 'UI layer selected: analysts and policy colleagues interact through guided pages, scenario prompts, and immediate chart outputs.',
+  orchestration: 'Orchestration layer selected: Python services interpret query intent, resolve indicators/scopes, run joins, and generate diagnostics.',
+  data: 'Data connector layer selected: API adapters normalize outputs from World Bank, ACLED, SDG, UIS, and UN Data endpoints.',
+  storage: 'Storage layer selected: DuckDB stores metadata registry, cache slices, materialized datasets, and refresh logs for speed and traceability.',
+  ai: 'AI layer selected: local/cloud LLMs support planning, analysis dialogue, and visualization prompting with deterministic guardrails.'
+};
+const layerButtons = Array.from(document.querySelectorAll('.layer-btn'));
+layerButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    layerButtons.forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    const layer = btn.dataset.layer;
+    layerText.textContent = layerDetails[layer] || '';
+    const map = { ui: 'node-ui', orchestration: 'node-orchestration', ai: 'node-ai', data: 'node-data', storage: 'node-storage' };
+    Object.values(map).forEach((id) => {
+      const node = document.getElementById(id);
+      if (node) node.setAttribute('stroke-width', '1.5');
+    });
+    const active = document.getElementById(map[layer]);
+    if (active) active.setAttribute('stroke-width', '3');
+  });
+});
+
+const chips = Array.from(document.querySelectorAll('#moduleFilters .chip'));
+const modules = Array.from(document.querySelectorAll('#moduleGrid .module'));
+chips.forEach((chip) => {
+  chip.addEventListener('click', () => {
+    chips.forEach((c) => c.classList.remove('active'));
+    chip.classList.add('active');
+    const filter = chip.dataset.filter;
+    modules.forEach((m) => {
+      const show = filter === 'all' || m.dataset.group === filter;
+      m.style.display = show ? 'block' : 'none';
+    });
+  });
+});
+
+render();
+</script>
+</body>
+</html>
